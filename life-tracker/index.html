@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1619">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Check-in">
+<title>Life Tracker Check-in</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<style>
+@font-face{font-family:"Newsreader";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/newsreader-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Newsreader";font-style:italic;font-weight:400;font-display:swap;src:url(fonts/newsreader-latin-400-italic.woff2) format("woff2")}
+@font-face{font-family:"Schibsted Grotesk";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/schibsted-grotesk-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Schibsted Grotesk";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/schibsted-grotesk-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Schibsted Grotesk";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/schibsted-grotesk-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2")}
+:root{
+  /* Night logbook: one column, every control in thumb reach. Teal = what's behind you, amber = tonight (the tracker's Life in Weeks colors). */
+  --bg:#0b1619; --panel:#12232a; --raise:#183039; --line:#244049;
+  --text:#e8efed; --muted:#90a7a6; --faint:#5b7577;
+  --amber:#f2b04b; --amber-ink:#271800; --teal:#45b3a4; --teal-ink:#052520; --over:#ee7b62;
+  --f-display:"Newsreader","Iowan Old Style",Georgia,serif;
+  --f-body:"Schibsted Grotesk",-apple-system,"Helvetica Neue",system-ui,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:14px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--f-body);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+#app{height:100%;max-width:520px;margin:0 auto;position:relative}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:disabled{opacity:.4;cursor:default}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+input,textarea,select{font:inherit;font-size:17px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;width:100%;-webkit-appearance:none;appearance:none}
+textarea{resize:vertical;line-height:1.45}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+input:focus,textarea:focus,select:focus{border-color:var(--teal);outline:none}
+h1,h2,h3{margin:0;font-weight:400;text-wrap:balance}
+p{margin:0}
+
+.view{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top) + 22px) 18px calc(env(safe-area-inset-bottom) + 32px);display:flex;flex-direction:column;gap:24px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.hello{font-family:var(--f-display);font-size:38px;line-height:1.05;letter-spacing:-.01em;margin-top:6px}
+.hello em{color:var(--amber)}
+.date-line{color:var(--muted);margin-top:6px}
+.notice{font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+
+.tonight{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 14px;text-align:left;width:100%;background:var(--amber);color:var(--amber-ink);border-radius:22px;padding:20px 20px 18px;box-shadow:0 14px 34px -16px rgba(242,176,75,.55)}
+.tonight .t-k{grid-column:1/-1;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;opacity:.72}
+.tonight .t-h{font-family:var(--f-display);font-size:34px;line-height:1.05}
+.tonight .t-s{grid-column:1;font-size:14px;opacity:.8}
+.tonight .arrow{grid-row:2/4;grid-column:2;width:50px;height:50px;border-radius:50%;background:var(--amber-ink);color:var(--amber);display:grid;place-items:center;font-size:22px}
+.tonight.done{background:var(--panel);color:var(--text);box-shadow:none;border:1px solid var(--line)}
+.tonight.done .t-h{font-style:italic}
+.tonight.done .arrow{background:var(--raise);color:var(--text);font-size:15px;font-weight:600;width:auto;height:auto;padding:10px 16px;border-radius:999px}
+
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+.sec-h h3{font-size:15px;font-weight:600}
+.legend{font-size:12px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.legend i.app{background:var(--amber)} .legend i.sheet{background:var(--teal)} .legend i.open{border:1px solid var(--muted)}
+.cal-head,.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;justify-items:center}
+.cal-head span{font-size:11px;color:var(--faint);font-weight:600}
+.cal{margin-top:6px}
+.dot{width:100%;max-width:42px;aspect-ratio:1/1;border-radius:50%;display:grid;place-items:center;font-family:var(--f-num);font-size:13px}
+.dot.open{border:1.5px solid var(--line);color:var(--muted)}
+.dot.app{background:var(--amber);color:var(--amber-ink);font-weight:600}
+.dot.part{background:color-mix(in srgb,var(--amber) 35%,transparent);color:var(--text);font-weight:600}
+.dot.sheet{background:var(--teal);color:var(--teal-ink);font-weight:600}
+.dot.fut{color:var(--faint);opacity:.35}
+.dot.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--text)}
+.intro .dot{animation:pop .5s cubic-bezier(.2,.8,.2,1) backwards}
+@keyframes pop{from{transform:scale(.55);opacity:.25}}
+.cal-note{font-size:13px;color:var(--muted);margin-top:12px}
+
+.cards{display:flex;flex-direction:column;gap:10px}
+.mini-card{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--teal);border-radius:var(--r);padding:14px 16px}
+.mini-card b{display:block;font-weight:600}
+.mini-card span{font-size:14px;color:var(--muted)}
+.mini-card .go{margin-left:auto;color:var(--muted);font-size:20px}
+
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .k{font-size:12px;color:var(--muted);font-weight:600}
+.tile .v{font-family:var(--f-num);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile .v small{font-size:14px;color:var(--muted);font-weight:400;margin-left:2px}
+.tile .s{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spark{width:100%;height:28px;margin-top:6px;overflow:visible}
+.spark-l{fill:none;stroke:var(--amber);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.spark-a{fill:var(--amber);opacity:.13}
+.spark-p{fill:var(--amber)}
+.spark.teal .spark-l{stroke:var(--teal)} .spark.teal .spark-a{fill:var(--teal)} .spark.teal .spark-p{fill:var(--teal)}
+.bar-meter{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.bar-meter i{display:block;height:100%;background:var(--teal);border-radius:3px}
+.bar-meter.over i{background:var(--over)}
+
+.links{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.links button{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 6px;font-weight:600;font-size:15px}
+.sync{font-size:12px;color:var(--faint);text-align:center}
+
+/* Check-in flow */
+.flow{height:100%;display:grid;grid-template-rows:auto 1fr auto}
+.flow-top{display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 12px) 16px 8px}
+.icon{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:22px;color:var(--muted);background:var(--panel)}
+.bars{flex:1;display:flex;gap:4px}
+.bars i{flex:1;height:4px;border-radius:2px;background:var(--line);transition:background .25s}
+.bars i.past{background:var(--teal)} .bars i.now{background:var(--amber)}
+.count{font-family:var(--f-num);font-size:12px;color:var(--muted);min-width:36px;text-align:right}
+.flow-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 20px 28px;display:flex;flex-direction:column;gap:16px}
+.step-k{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.step-k .catch{color:var(--amber)}
+.q{font-family:var(--f-display);font-style:italic;font-size:clamp(30px,8.6vw,40px);line-height:1.08;letter-spacing:-.01em}
+.hint{color:var(--muted);font-size:15px}
+.flow-nav{display:flex;gap:10px;padding:12px 16px calc(env(safe-area-inset-bottom) + 12px);border-top:1px solid var(--line);background:var(--bg)}
+.primary{flex:1;background:var(--amber);color:var(--amber-ink);border-radius:var(--r);padding:16px;font-weight:600;font-size:17px}
+.ghost{padding:16px 20px;border-radius:var(--r);border:1px solid var(--line);color:var(--muted);font-weight:600}
+.wide{width:100%}
+
+.when{position:relative;display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--muted);padding:8px 14px;border:1px solid var(--line);border-radius:999px;align-self:flex-start}
+.when b{color:var(--text);font-weight:600}
+.when u{color:var(--amber);text-decoration:none;font-weight:600}
+.when input{position:absolute;inset:0;opacity:0;font-size:16px;padding:0;border:0;width:100%;height:100%}
+
+.scale{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:8px}
+.scale button{aspect-ratio:1/1;border-radius:16px;background:var(--panel);border:1px solid var(--line);font-family:var(--f-num);font-size:24px;font-weight:600;transition:transform .15s,background .15s}
+.scale button.on{background:var(--amber);border-color:var(--amber);color:var(--amber-ink);transform:scale(1.06)}
+.scale.five{gap:8px;margin-top:0}
+.scale.five button{aspect-ratio:auto;padding:11px 0;font-size:17px;border-radius:12px}
+.scale.ten{grid-template-columns:repeat(10,1fr);gap:4px;margin-top:0}
+.scale.ten button{aspect-ratio:auto;padding:9px 0;font-size:14px;border-radius:9px}
+.scale.ten button.on{transform:none}
+.ramp{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--amber));opacity:.55}
+.scale-ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:-6px}
+.last-n{font-family:var(--f-num);color:var(--text)}
+
+.readout{display:flex;align-items:center;justify-content:center;gap:22px;margin:18px 0 4px}
+.round{width:58px;height:58px;border-radius:50%;background:var(--panel);border:1px solid var(--line);font-size:28px}
+.big{display:flex;align-items:baseline;gap:6px;min-width:150px;justify-content:center}
+.big .num{font-family:var(--f-num);font-size:76px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.big .unit{color:var(--muted);font-size:18px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips.center{justify-content:center}
+.chip{padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:15px;line-height:1.2}
+.chip.on{background:var(--teal);border-color:var(--teal);color:var(--teal-ink);font-weight:600}
+.chip.sm{padding:6px 12px;font-size:14px}
+.chip.quick{border-style:dashed;text-align:left}
+.chip.quick b{font-family:var(--f-num);font-weight:400;color:var(--muted);margin-left:6px}
+
+.yesno{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.yesno button{padding:22px 12px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line);font-weight:600;font-size:17px}
+.yesno button.on{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.card .chip,.card .scale button{background:var(--raise)}
+.card .chip.on{background:var(--teal)}
+.card .scale button.on{background:var(--amber)}
+.card input,.card textarea{background:var(--bg)}
+.field{display:flex;flex-direction:column;gap:7px}
+.field>span{font-size:13px;color:var(--muted);font-weight:600}
+.last{border:1px dashed var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.last-h{font-size:13px;color:var(--teal);font-weight:600}
+.last-t{font-size:14px;color:var(--muted);white-space:pre-line;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.chip-btn{align-self:flex-start;padding:8px 14px;border-radius:999px;background:var(--teal);color:var(--teal-ink);font-weight:600;font-size:14px}
+.add-line{padding:14px;border:1px dashed var(--line);border-radius:var(--r);color:var(--muted);font-weight:600}
+.wk-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);font-weight:600}
+.link{color:var(--amber);font-size:14px;font-weight:600}
+
+.habits{display:flex;flex-direction:column;gap:8px}
+.habit{display:flex;gap:8px}
+.h-main{flex:1;display:flex;align-items:center;gap:14px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:15px 14px;min-width:0;transition:border-color .15s}
+.tick{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:var(--teal-ink);transition:background .15s}
+.habit.done .tick{background:var(--teal);border-color:var(--teal)}
+.habit.done .h-main{border-color:color-mix(in srgb,var(--teal) 55%,var(--line))}
+.h-name{flex:1;font-weight:500;min-width:0}
+.h-name em{display:block;font-style:normal;font-size:12px;color:var(--teal);font-weight:600}
+.h-count{font-family:var(--f-num);font-size:13px;color:var(--muted)}
+.h-na{flex:none;width:58px;border-radius:var(--r);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
+.habit.na .h-main{opacity:.45}
+.habit.na .h-na{background:var(--raise);color:var(--text);border-color:var(--muted)}
+
+.tx{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.tx li{display:grid;grid-template-columns:1fr auto 36px;align-items:center;gap:8px;padding:10px 6px 10px 14px;border-bottom:1px solid var(--line)}
+.tx li:last-child{border-bottom:0}
+.t-desc{min-width:0;overflow-wrap:anywhere}
+.t-desc small{display:block;color:var(--muted);font-size:12px}
+.t-amt{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.tx-total{background:var(--panel);font-weight:600}
+.x{width:34px;height:34px;border-radius:50%;color:var(--muted);font-size:20px}
+.amt-row{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.amt-row .cur{font-family:var(--f-num);font-size:30px;color:var(--muted)}
+.card .amt-row input{background:none;border:0;font-family:var(--f-num);font-size:34px;padding:4px 0}
+.budget{font-size:13px;color:var(--teal);font-weight:600}
+.budget.over{color:var(--over)}
+.secondary{padding:14px;border-radius:12px;background:var(--teal);color:var(--teal-ink);font-weight:600}
+.sub-h{font-size:13px;color:var(--muted);font-weight:600}
+.nospend{color:var(--teal);font-weight:600}
+
+.big-text{min-height:130px;font-size:18px;line-height:1.5}
+.prio{display:flex;align-items:center;gap:10px}
+.prio b{font-family:var(--f-num);color:var(--muted);width:20px}
+.switch{display:flex;align-items:center;gap:10px;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px}
+.switch button{width:38px;height:38px;border-radius:50%;font-size:20px;color:var(--amber)}
+.switch span{font-weight:600;font-size:15px}
+
+.life{display:flex;flex-direction:column;gap:6px}
+.life-h{display:flex;justify-content:space-between;align-items:baseline;font-weight:500}
+.life-v{font-family:var(--f-num);font-weight:600}
+.life-v small{font-weight:400;color:var(--faint);margin-left:8px;font-size:12px}
+details.bal{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+details.bal summary{font-weight:600;cursor:pointer}
+details.bal summary small{color:var(--muted);font-weight:400;margin-left:6px}
+.bal-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.field.row{flex-direction:row;align-items:center;justify-content:space-between;gap:12px}
+.field.row input{width:140px;flex:none;text-align:right;font-family:var(--f-num)}
+
+.done-q{font-size:clamp(40px,11vw,54px)}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sum div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;min-width:0}
+.sum small{font-size:12px;color:var(--muted);font-weight:600}
+.sum b{font-family:var(--f-num);font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl{margin:0;padding:4px 0 4px 16px;border-left:3px solid var(--amber);font-family:var(--f-display);font-style:italic;font-size:21px;line-height:1.35}
+.streak{color:var(--amber);font-weight:600}
+
+/* Secondary screens */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bar h1{font-family:var(--f-display);font-size:32px;font-style:italic}
+.back{color:var(--amber);font-weight:600;padding:8px 0}
+.chart{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart text{fill:var(--faint);font-family:var(--f-num);font-size:9px}
+.chart .lm{fill:none;stroke:var(--amber);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .le{fill:none;stroke:var(--teal);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .pm{fill:var(--amber)} .chart .pe{fill:var(--teal)}
+.chart-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 12px 8px}
+.chart-legend{display:flex;gap:14px;font-size:12px;color:var(--muted);padding:0 4px 6px}
+.chart-legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.row-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.row-btns>*{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 6px;font-weight:600;font-size:14px;text-align:center}
+.row-btns input{position:absolute;inset:0;opacity:0;font-size:16px;width:100%;height:100%;padding:0;border:0}
+.month-h{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+.day-list{display:flex;flex-direction:column}
+.day-row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 0;border-bottom:1px solid var(--line)}
+.dr-date{display:flex;flex-direction:column;align-items:center;font-family:var(--f-num)}
+.dr-date b{font-size:20px;line-height:1.1}
+.dr-date small{font-size:11px;color:var(--muted);font-family:var(--f-body);text-transform:uppercase;font-weight:600}
+.dr-main{min-width:0}
+.dr-nums{font-family:var(--f-num);font-size:13px;color:var(--muted)}
+.dr-hl{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badges{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.badge{font-size:12px;padding:3px 8px;border-radius:999px;background:var(--raise);color:var(--muted);white-space:nowrap}
+.badge.partial{color:var(--amber)}
+.empty{color:var(--muted);font-size:15px;padding:12px 0}
+
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec h3{font-size:15px;font-weight:600}
+.set-row{display:grid;grid-template-columns:1fr 84px 34px;gap:8px;align-items:center}
+.set-row input.n{font-family:var(--f-num);text-align:right}
+.set-cols{display:grid;grid-template-columns:1fr 84px 34px;gap:8px;font-size:12px;color:var(--faint);font-weight:600}
+.set-cols span:nth-child(2){text-align:right}
+.set-quick{display:grid;grid-template-columns:1fr 96px 34px;grid-template-areas:"d d d" "c a x";gap:8px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.set-quick .d{grid-area:d}.set-quick .c{grid-area:c}.set-quick .a{grid-area:a;font-family:var(--f-num);text-align:right}.set-quick .x{grid-area:x}
+.set-title{font-family:var(--f-display);font-style:italic;font-size:28px}
+.flow-body .sec+.sec{margin-top:10px}
+
+.lede{color:var(--muted);font-size:15px;max-width:60ch}
+.lede b{color:var(--text)}
+.range{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.range input{font-size:16px;padding:11px 10px}
+.exp-list{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:var(--r)}
+.exp-list li{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+.exp-list li:last-child{border-bottom:0}
+.exp-list small{display:block;color:var(--muted);font-size:12px}
+.exp-list .n{font-family:var(--f-num);color:var(--muted);font-size:14px}
+
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 10px);transform:translateX(-50%) translateY(-8px);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px);text-align:center;z-index:10}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+html,body{overflow:hidden;overscroll-behavior:none}
+button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.tonight .arrow svg{display:block}
+.mini-card{position:relative}
+.file-pick{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;padding:0;border:0}
+.data-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.data-btns.one{grid-template-columns:1fr}
+.data-btns>*{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 8px;font-weight:600;font-size:15px;text-align:center;cursor:pointer}
+.view .sec+.sec{padding-top:20px;border-top:1px solid var(--line)}
+.set-row.two{grid-template-columns:1fr 34px}
+details.bal .sec{margin-top:14px}
+.modal-wrap{position:fixed;inset:0;background:rgba(4,10,12,.74);display:flex;align-items:flex-end;justify-content:center;z-index:20;padding:16px 16px calc(env(safe-area-inset-bottom) + 16px)}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;width:100%;max-width:488px;max-height:100%;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.modal h2{font-family:var(--f-display);font-style:italic;font-size:26px;line-height:1.15}
+.modal p{color:var(--muted);font-size:15px}
+.modal ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.modal-btns{display:flex;gap:10px;margin-top:4px}
+.notice .link{margin-left:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input class="file-pick" id="restoreIn" type="file" accept=".json,application/json" data-change="restore-file" tabindex="-1" aria-hidden="true">
+<input class="file-pick" id="importIn" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-change="import-file" tabindex="-1" aria-hidden="true">
+<script>
+"use strict";
+/* ---------- small helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clone = o => o == null ? o : JSON.parse(JSON.stringify(o));
+const pad = n => String(n).padStart(2, "0");
+const uid = () => Math.random().toString(36).slice(2, 10);
+const num = v => { if (v === "" || v == null) return null; const n = parseFloat(String(v).replace(/[$,\s]/g, "")); return isFinite(n) ? n : null; };
+const fmtNum = n => n == null ? "–" : String(Math.round(n * 100) / 100);
+const trunc = (s, n) => { s = String(s || ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d || 1); };
+const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
+const mondayOf = s => { const d = parseYmd(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return ymd(d); };
+const monthKey = s => s.slice(0, 7);
+const daysInMonth = mk => { const [y, m] = mk.split("-").map(Number); return new Date(y, m, 0).getDate(); };
+const shiftMonth = (mk, d) => { const [y, m] = mk.split("-").map(Number); const t = new Date(y, m - 1 + d, 1); return `${t.getFullYear()}-${pad(t.getMonth() + 1)}`; };
+const lastNDays = (n, end) => Array.from({length: n}, (_, i) => addDays(end, i - n + 1));
+const realToday = () => ymd(new Date());
+function logicalToday() { const d = new Date(); if (d.getHours() < 4) d.setDate(d.getDate() - 1); return ymd(d); }
+const fmt = {
+  long: s => parseYmd(s).toLocaleDateString("en-US", {weekday: "long", month: "long", day: "numeric"}),
+  med: s => parseYmd(s).toLocaleDateString("en-US", {weekday: "short", month: "short", day: "numeric"}),
+  short: s => parseYmd(s).toLocaleDateString("en-US", {month: "short", day: "numeric"}),
+  wd: s => parseYmd(s).toLocaleDateString("en-US", {weekday: "long"}),
+  wds: s => parseYmd(s).toLocaleDateString("en-US", {weekday: "short"}),
+  month: mk => parseYmd(mk + "-01").toLocaleDateString("en-US", {month: "long", year: "numeric"}),
+  mon: mk => parseYmd(mk + "-01").toLocaleDateString("en-US", {month: "long"}),
+  money: n => (n < 0 ? "−" : "") + "$" + Math.abs(n).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+  money0: n => (n < 0 ? "−" : "") + "$" + Math.round(Math.abs(n)).toLocaleString("en-US"),
+};
+const CHECK = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.4l2.9 2.9 6.1-6.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/* ---------- state ---------- */
+const DEFAULT_CONFIG = {
+  name: "",
+  habits: [],
+  categories: ["Rent / housing","Groceries","Eating out","Transport","Utilities & phone","Subscriptions","Health & fitness","Fun & social","Personal growth","Savings / investing","Other"].map(name => ({name, budget: 0})),
+  workoutTypes: ["Gym","Run","Walk","Cycling","Sports","Yoga/Stretch","Swim","Other"],
+  lifeAreas: ["Health","Career","Finances","Relationships","Personal growth","Fun & recreation","Environment","Purpose"],
+  accounts: [], liabilities: [], quick: []
+};
+const S = {
+  mode: "idb", loaded: false, loadError: false, sync: "",
+  config: clone(DEFAULT_CONFIG),
+  history: {mood: [], workouts: [], life: {}},
+  days: {}, weeks: {}, months: {}, meta: {},
+  view: "home", flow: null, settingsDraft: null, exportOpts: null,
+  introShown: false, modal: null, hasConfig: false, hasHistory: false, xlsxFailed: false
+};
+const normalizeConfig = c => {
+  const o = Object.assign(clone(DEFAULT_CONFIG), c || {});
+  for (const k of ["habits","categories","workoutTypes","lifeAreas","accounts","liabilities","quick"]) if (!Array.isArray(o[k])) o[k] = clone(DEFAULT_CONFIG[k]);
+  return o;
+};
+
+/* ---------- storage: everything lives on this device ---------- */
+const normalizeHistory = h => {
+  const o = Object.assign({}, (h && typeof h === "object") ? h : {});
+  if (!Array.isArray(o.mood)) o.mood = [];
+  if (!Array.isArray(o.workouts)) o.workouts = [];
+  if (!o.life || typeof o.life !== "object" || Array.isArray(o.life)) o.life = {};
+  return o;
+};
+const LS = {
+  get(k) { try { return JSON.parse(localStorage.getItem("ltc:" + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem("ltc:" + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem("ltc:" + k); } catch (e) {} },
+  keys(prefix) { const out = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith("ltc:" + prefix)) out.push(k.slice(4)); } } catch (e) {} return out; },
+  works() { try { localStorage.setItem("ltc:probe", "1"); localStorage.removeItem("ltc:probe"); return true; } catch (e) { return false; } }
+};
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+const isStandalone = () => navigator.standalone === true || !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+const INSTALL_HINT = "You're viewing this in the browser. Tap Share, then Add to Home Screen, and use the app from that icon. The icon keeps its own separate data, so set up and log there.";
+
+/* IndexedDB key-value store ("days/2026-11-14" -> document), with localStorage as a fallback. */
+const Store = (() => {
+  const DB = "life-tracker", OS = "kv";
+  let db = null, mode = "idb";
+  function openDB() {
+    return new Promise((res, rej) => {
+      let req;
+      try { req = indexedDB.open(DB, 1); } catch (e) { rej(e); return; }
+      req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(OS)) req.result.createObjectStore(OS); };
+      req.onsuccess = () => {
+        db = req.result;
+        db.onclose = () => { db = null; };
+        db.onversionchange = () => { try { db.close(); } catch (e) {} db = null; };
+        res(db);
+      };
+      req.onerror = () => rej(req.error || new Error("open failed"));
+      req.onblocked = () => rej(new Error("blocked"));
+    });
+  }
+  /* Runs fn inside one transaction. If the connection has gone away (iOS drops it in the background), reopen and try once more. */
+  async function tx(rw, fn) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        if (!db) await openDB();
+        return await new Promise((res, rej) => {
+          const t = db.transaction(OS, rw);
+          let out;
+          t.oncomplete = () => res(out);
+          t.onerror = () => rej(t.error || new Error("transaction failed"));
+          t.onabort = () => rej(t.error || new Error("transaction aborted"));
+          out = fn(t.objectStore(OS));
+        });
+      } catch (e) {
+        try { if (db) db.close(); } catch (_) {}
+        db = null;
+        if (attempt >= 1) throw e;
+      }
+    }
+  }
+  return {
+    mode: () => mode,
+    async init() {
+      if (!window.indexedDB) { mode = LS.works() ? "ls" : "mem"; return; }
+      try { await openDB(); mode = "idb"; }
+      catch (e) { db = null; mode = LS.works() ? "ls" : "mem"; }
+    },
+    async readAll() {
+      if (mode === "idb") {
+        const r = await tx("readonly", s => ({k: s.getAllKeys(), v: s.getAll()}));
+        return r.k.result.map((k, i) => [String(k), r.v.result[i]]);
+      }
+      if (mode === "ls") return LS.keys("kv:").map(k => [k.slice(3), LS.get(k)]);
+      return [];
+    },
+    async writeMany(entries) {
+      if (mode === "idb") { await tx("readwrite", s => { entries.forEach(([k, v]) => s.put(v, k)); }); return; }
+      if (mode === "ls") { for (const [k, v] of entries) if (!LS.set("kv:" + k, v)) { const e = new Error("localStorage full"); e.name = "QuotaExceededError"; throw e; } }
+    }
+  };
+})();
+
+const SYNC_TEXT = {
+  loading: "Opening your log…",
+  saved: "Saved on this device",
+  saving: "Saving…",
+  error: "Couldn't save just now. Keep the app open and it will try again.",
+  full: "This device is out of storage space. Free some up and the app will save again.",
+  mem: "This browser is blocking storage, so nothing entered here will be kept. Open the app from its Home Screen icon instead.",
+  loadfail: "Couldn't open your saved log."
+};
+function setSync(s) { S.sync = s; const el = $("#sync"); if (el) el.textContent = SYNC_TEXT[s] || ""; }
+
+const COLLS = ["days", "weeks", "months"];
+function applyLocal(path, data) {
+  const i = path.indexOf("/"); if (i < 1) return;
+  const coll = path.slice(0, i), id = path.slice(i + 1);
+  if (coll === "app") {
+    if (id === "config") { S.config = normalizeConfig(data); S.hasConfig = true; }
+    else if (id === "meta") S.meta = (data && typeof data === "object") ? data : {};
+    else if (id === "history") { S.history = normalizeHistory(data); S.hasHistory = true; }
+  } else if (COLLS.includes(coll)) S[coll][id] = data;
+}
+function lookup(path) {
+  const i = path.indexOf("/"), coll = path.slice(0, i), id = path.slice(i + 1);
+  if (coll === "app") return id === "config" ? (S.hasConfig ? S.config : null) : id === "meta" ? S.meta : id === "history" ? (S.hasHistory ? S.history : null) : null;
+  return COLLS.includes(coll) ? S[coll][id] : null;
+}
+const pending = new Map(), mirrored = new Set();
+let flushing = false, retryT = null;
+function save(path, data) { applyLocal(path, data); pending.set(path, data); flush(); }
+function saveMany(list) { for (const [p, d] of list) { applyLocal(p, d); pending.set(p, d); } return flush(); }
+async function flush() {
+  if (flushing || !pending.size) return;
+  flushing = true; clearTimeout(retryT);
+  while (pending.size) {
+    const batch = [...pending];
+    if (S.mode !== "mem") setSync("saving");
+    try {
+      await Store.writeMany(batch);
+      for (const [p, d] of batch) {
+        if (pending.get(p) === d) { pending.delete(p); if (mirrored.has(p)) { mirrored.delete(p); LS.del("pending:" + p); } }
+      }
+      setSync(S.mode === "mem" ? "mem" : "saved");
+    } catch (e) {
+      /* Keep a copy outside IndexedDB so a restart can't lose it, then retry shortly. */
+      for (const [p, d] of batch) { if (LS.set("pending:" + p, d)) mirrored.add(p); }
+      setSync(e && e.name === "QuotaExceededError" ? "full" : "error");
+      retryT = setTimeout(flush, 4000);
+      break;
+    }
+  }
+  flushing = false;
+}
+/* Synchronous safety net for when the app is being hidden or closed mid-save. */
+function mirrorPending() { for (const [p, d] of pending) if (LS.set("pending:" + p, d)) mirrored.add(p); }
+async function init() {
+  S.loadError = false; setSync("loading");
+  let rows;
+  try { await Store.init(); rows = await Store.readAll(); }
+  catch (e) { S.loadError = true; setSync("loadfail"); render(); return; }
+  S.mode = Store.mode();
+  S.days = {}; S.weeks = {}; S.months = {};
+  for (const [k, v] of rows) if (v && typeof v === "object") applyLocal(k, v);
+  for (const key of LS.keys("pending:")) {
+    const path = key.slice(8), d = LS.get(key);
+    if (!d || typeof d !== "object") { LS.del(key); continue; }
+    const cur = lookup(path);
+    if (!cur || (d.updatedAt || "") > (cur.updatedAt || "")) { applyLocal(path, d); pending.set(path, d); mirrored.add(path); }
+    else LS.del(key);
+  }
+  S.loaded = true;
+  setSync(S.mode === "mem" ? "mem" : "saved");
+  if (pending.size) flush();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
+  if (!resumeFlow()) { if (needsSetup()) S.view = "setup"; render(); }
+}
+const canEdit = () => S.loaded;
+const needsSetup = () => !S.meta.setupDone && !S.hasConfig && !Object.keys(S.days).length;
+const isYmd = s => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(parseYmd(s).getTime());
+const daysBetween = (a, b) => Math.round((parseYmd(b) - parseYmd(a)) / 86400000);
+
+/* If iOS reloads the app mid check-in (e.g. after a trip to the bank app), reopen on the same step. */
+function rememberFlow() {
+  const f = S.flow;
+  if (S.view === "flow" && f) LS.set("resume", {kind: f.kind, date: f.date, step: f.steps[f.i], weekOf: f.weekOf || null, monthKey: f.monthKey || null, ts: Date.now()});
+  else LS.del("resume");
+}
+function resumeFlow() {
+  const r = LS.get("resume");
+  if (!r || typeof r !== "object" || !r.ts || Date.now() < r.ts || Date.now() - r.ts > 3 * 3600 * 1000) return false;
+  try {
+    if (!["day", "week", "month"].includes(r.kind)) return false;
+    if (r.kind === "day" && !(isYmd(r.date) && r.date <= realToday())) return false;
+    openFlow(r.kind, r.kind === "day" ? r.date : null, {weekOf: isYmd(r.weekOf) ? r.weekOf : undefined, monthKey: /^\d{4}-\d{2}$/.test(r.monthKey || "") ? r.monthKey : undefined});
+    const f = S.flow; if (!f) return false;
+    const i = f.steps.indexOf(r.step);
+    if (i > 0) { f.i = i; if (f.steps[i] === "habits") applyHabitSuggestions(f); render(); }
+    return true;
+  } catch (e) { S.flow = null; S.view = "home"; return false; }
+}
+
+/* ---------- derived data ---------- */
+const hasRealContent = d => hasDayContent(Object.assign({}, d, {done: false}));
+const flowEmpty = f => (!f.draft || !hasRealContent(f.draft)) && (!f.week || (isStepEmpty(f, "week") && isStepEmpty(f, "plan"))) && (!f.month || isStepEmpty(f, "month"));
+function hasDayContent(d) {
+  if (!d) return false;
+  return d.mood != null || d.energy != null || d.sleep != null || d.workedOut != null || (d.spending && d.spending.length > 0) || !!d.noSpend ||
+    !!(d.highlight || d.felt || d.note) || Object.values(d.habits || {}).some(Boolean) || !!d.done;
+}
+function sheetDates() {
+  if (S._sheetFor === S.history) return S._sheet;
+  const set = new Set();
+  (S.history.mood || []).forEach(r => set.add(r.d));
+  (S.history.workouts || []).forEach(w => set.add(w.d));
+  S._sheetFor = S.history; S._sheet = set; return set;
+}
+function seriesMap(field) {
+  const key = {mood: "m", energy: "e", sleep: "s"}[field]; const m = {};
+  (S.history.mood || []).forEach(r => { if (r[key] != null) m[r.d] = r[key]; });
+  for (const d of Object.values(S.days)) if (d && d[field] != null) m[d.date] = d[field];
+  return m;
+}
+const avgOf = (m, days) => { const v = days.map(d => m[d]).filter(x => x != null); return v.length ? {avg: v.reduce((a, b) => a + b, 0) / v.length, n: v.length} : {avg: null, n: 0}; };
+function monthSpend(mk) {
+  const by = {}; let total = 0; const f = S.flow;
+  const add = t => { const a = +t.amount || 0; by[t.category] = (by[t.category] || 0) + a; total += a; };
+  for (const d of Object.values(S.days)) {
+    if (!d || !d.date || !d.date.startsWith(mk)) continue;
+    if (f && f.draft && d.date === f.date) continue;
+    (d.spending || []).forEach(add);
+  }
+  if (f && f.draft && f.date.startsWith(mk)) f.draft.spending.forEach(add);
+  return {by, total};
+}
+const isSavings = n => /saving|invest/i.test(n);
+function targetFor(name, dim) { const h = S.config.habits.find(x => x.name === name); return h && h.target ? Math.min(h.target, dim) : null; }
+function habitCount(name, mk, f) {
+  let n = 0;
+  for (const d of Object.values(S.days)) { if (!d || !d.date || !d.date.startsWith(mk)) continue; if (f && d.date === f.date) continue; if (d.habits && d.habits[name] === "x") n++; }
+  if (f && f.draft && f.date.startsWith(mk) && f.draft.habits[name] === "x") n++;
+  return n;
+}
+function lastSession(type, before) {
+  let best = null;
+  for (const w of S.history.workouts || []) if (w.type === type && w.d < before && w.what && (!best || w.d > best.d)) best = {d: w.d, what: w.what, dur: w.dur, int: w.int};
+  for (const d of Object.values(S.days)) {
+    if (!d || !d.date || d.date >= before || d.workedOut === false) continue;
+    for (const w of d.workouts || []) if (w.type === type && w.what && (!best || d.date > best.d)) best = {d: d.date, what: w.what, dur: w.dur, int: w.int};
+  }
+  return best;
+}
+function streakEnding(date) {
+  const sheet = sheetDates(); let n = 0, d = date;
+  while ((S.flow && S.flow.date === d) || hasDayContent(S.days[d]) || sheet.has(d)) { n++; d = addDays(d, -1); if (n > 400) break; }
+  return n;
+}
+const weekDone = w => { const r = S.weeks[w] && S.weeks[w].reflection; return !!r && Object.values(r).some(v => v != null && v !== ""); };
+const monthDone = mk => { const m = S.months[mk]; return !!(m && m.life && Object.keys(m.life).length); };
+function defaultWeekOf() {
+  const t = logicalToday(), dow = parseYmd(t).getDay(), thisW = mondayOf(t), lastW = addDays(thisW, -7);
+  return ((dow === 1 || dow === 2) && !weekDone(lastW)) ? lastW : thisW;
+}
+function defaultMonthKey() {
+  const t = logicalToday(), d = parseYmd(t);
+  if (d.getDate() <= 7) { const prev = shiftMonth(monthKey(t), -1); if (!monthDone(prev)) return prev; }
+  return monthKey(t);
+}
+function monthDue(date) {
+  const d = parseYmd(date), mk = monthKey(date);
+  if (d.getDate() === daysInMonth(mk)) return mk;
+  if (d.getDate() <= 3) { const prev = shiftMonth(mk, -1); if (!monthDone(prev)) return prev; }
+  return null;
+}
+function prevLife(mk) {
+  const c = [];
+  for (const [k, v] of Object.entries(S.history.life || {})) if (k < mk && v) c.push([k, v]);
+  for (const m of Object.values(S.months)) if (m && m.month < mk && m.life && Object.keys(m.life).length) c.push([m.month, m.life]);
+  c.sort((a, b) => a[0] < b[0] ? 1 : -1);
+  return c.length ? {label: parseYmd(c[0][0] + "-01").toLocaleDateString("en-US", {month: "short"}), vals: c[0][1]} : null;
+}
+
+/* ---------- the nightly flow ---------- */
+const STEP_LABEL = {mood: "Mood", energy: "Energy", sleep: "Sleep", workout: "Movement", habits: "Habits", spending: "Spending", highlight: "Highlight", felt: "Feelings", note: "Planner note", week: "Weekly reflection", plan: "Next week", month: "Monthly check-in", wrap: "Done"};
+function newDay(date) {
+  return {date, mood: null, energy: null, sleep: null, habits: {}, habitOrder: S.config.habits.map(h => h.name), workedOut: null, workouts: [], spending: [], noSpend: false, highlight: "", felt: "", note: "", done: false};
+}
+function ensureDayShape(d) {
+  d.habits = d.habits || {}; d.workouts = d.workouts || []; d.spending = d.spending || [];
+  for (const k of ["highlight", "felt", "note"]) d[k] = d[k] || "";
+  const order = (d.habitOrder && d.habitOrder.slice()) || Object.keys(d.habits);
+  S.config.habits.forEach(h => { if (!order.includes(h.name)) order.push(h.name); });
+  d.habitOrder = order;
+  return d;
+}
+const stripMeta = d => { const o = Object.assign({}, d); delete o.updatedAt; delete o.createdAt; return o; };
+function loadWeek(f) {
+  const r = S.weeks[f.weekOf] && S.weeks[f.weekOf].reflection;
+  f.week = Object.assign({win: "", challenge: "", learned: "", gratitude: "", different: "", overall: null}, clone(r) || {});
+  f.nextOf = addDays(f.weekOf, 7);
+  const p = S.weeks[f.nextOf] && S.weeks[f.nextOf].plan;
+  f.plan = Object.assign({intention: "", priorities: ["", "", ""]}, clone(p) || {});
+  f.savedWeek = JSON.stringify(f.week); f.savedPlan = JSON.stringify(f.plan);
+}
+function loadMonth(f) {
+  const m = S.months[f.monthKey] || {};
+  f.month = {life: clone(m.life) || {}, balances: clone(m.balances) || {}};
+  f.savedMonth = JSON.stringify(f.month);
+}
+function openFlow(kind, date, opts = {}) {
+  if (!canEdit()) { toast("Still loading your log…"); return; }
+  persistFlow();
+  const f = {kind, date: date || logicalToday(), i: 0, spendForm: {amount: "", desc: "", category: ""}, auto: new Set()};
+  if (kind === "day") {
+    f.draft = ensureDayShape(clone(S.days[f.date]) || newDay(f.date));
+    f.saved = JSON.stringify(stripMeta(f.draft));
+    if (parseYmd(f.date).getDay() === 0) { f.weekOf = mondayOf(f.date); loadWeek(f); }
+    const mk = monthDue(f.date); if (mk) { f.monthKey = mk; loadMonth(f); }
+    f.steps = ["mood", "energy", "sleep", "workout", "habits", "spending", "highlight", "felt", "note"];
+    if (f.weekOf) f.steps.push("week", "plan");
+    if (f.monthKey) f.steps.push("month");
+    f.steps.push("wrap");
+  } else if (kind === "week") {
+    f.weekOf = opts.weekOf || defaultWeekOf(); loadWeek(f); f.steps = ["week", "plan", "wrap"];
+  } else {
+    f.monthKey = opts.monthKey || defaultMonthKey(); loadMonth(f); f.steps = ["month", "wrap"];
+  }
+  if (opts.resume) f.i = resumeIndex(f);
+  S.flow = f; S.view = "flow";
+  if (f.steps[f.i] === "habits") applyHabitSuggestions(f);
+  render();
+}
+function resumeIndex(f) {
+  const d = f.draft; if (!d) return 0;
+  const ok = {mood: d.mood != null, energy: d.energy != null, sleep: d.sleep != null, workout: d.workedOut != null,
+    habits: Object.values(d.habits).some(Boolean) || !d.habitOrder.length, spending: d.spending.length > 0 || d.noSpend, highlight: !!d.highlight, felt: !!d.felt};
+  const i = f.steps.findIndex(s => s in ok && !ok[s]);
+  return i < 0 ? 0 : i;
+}
+function persistFlow() {
+  const f = S.flow; if (!f) return;
+  clearTimeout(S.persistT);
+  const ts = new Date().toISOString();
+  if (f.draft) {
+    const cur = JSON.stringify(stripMeta(f.draft));
+    if (cur !== f.saved && hasDayContent(f.draft)) {
+      f.draft.updatedAt = ts; f.draft.createdAt = f.draft.createdAt || ts;
+      save("days/" + f.date, clone(f.draft)); f.saved = cur;
+    }
+  }
+  if (f.week) {
+    const cur = JSON.stringify(f.week);
+    if (cur !== f.savedWeek) { const doc = Object.assign({weekOf: f.weekOf}, clone(S.weeks[f.weekOf]) || {}); doc.reflection = clone(f.week); doc.updatedAt = ts; save("weeks/" + f.weekOf, doc); f.savedWeek = cur; }
+    const curP = JSON.stringify(f.plan);
+    if (curP !== f.savedPlan) { const doc = Object.assign({weekOf: f.nextOf}, clone(S.weeks[f.nextOf]) || {}); doc.plan = clone(f.plan); doc.updatedAt = ts; save("weeks/" + f.nextOf, doc); f.savedPlan = curP; }
+  }
+  if (f.month) {
+    const cur = JSON.stringify(f.month);
+    if (cur !== f.savedMonth) { const doc = Object.assign({month: f.monthKey}, clone(S.months[f.monthKey]) || {}); doc.life = clone(f.month.life); doc.balances = clone(f.month.balances); doc.updatedAt = ts; save("months/" + f.monthKey, doc); f.savedMonth = cur; }
+  }
+}
+function schedulePersist() { clearTimeout(S.persistT); S.persistT = setTimeout(persistFlow, 700); }
+function applyHabitSuggestions(f) {
+  if (f.suggested || !f.draft) return; f.suggested = true;
+  const d = f.draft;
+  for (const n of d.habitOrder) {
+    if (d.habits[n] !== undefined) continue;
+    if (/sleep/i.test(n) && d.sleep != null) {
+      const r = n.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/);
+      const ok = r ? (d.sleep >= +r[1] && d.sleep <= +r[2]) : d.sleep >= 7;
+      if (ok) { d.habits[n] = "x"; f.auto.add(n); }
+    } else if (/moved|move|workout|exercise|gym|lift/i.test(n) && d.workedOut === true && d.workouts.some(w => w.type)) {
+      d.habits[n] = "x"; f.auto.add(n);
+    }
+  }
+}
+function isStepEmpty(f, k) {
+  const d = f.draft;
+  switch (k) {
+    case "mood": case "energy": case "sleep": return d[k] == null;
+    case "workout": return d.workedOut == null;
+    case "habits": return !Object.values(d.habits).some(Boolean);
+    case "spending": return !d.spending.length && !d.noSpend && num(f.spendForm.amount) == null;
+    case "highlight": case "felt": case "note": return !(d[k] || "").trim();
+    case "week": return !Object.values(f.week).some(v => v != null && v !== "");
+    case "plan": return !(f.plan.intention || f.plan.priorities.some(Boolean));
+    case "month": return !Object.keys(f.month.life).length && !Object.keys(f.month.balances).length;
+  }
+  return false;
+}
+const nextLabel = f => f.steps[f.i] === "wrap" ? "Finish" : (isStepEmpty(f, f.steps[f.i]) ? "Skip" : "Next");
+function updateNextLabel() { const b = $("#nextBtn"); if (b && S.flow) b.textContent = nextLabel(S.flow); }
+function goStep(dir) {
+  const f = S.flow; const key = f.steps[f.i];
+  if (dir > 0 && key === "spending" && num(f.spendForm.amount) != null) { if (!addPurchase(true)) return; }
+  persistFlow();
+  if (dir > 0 && f.i === f.steps.length - 1) return finish();
+  f.i = Math.max(0, Math.min(f.steps.length - 1, f.i + dir));
+  const now = f.steps[f.i];
+  if (now === "habits") applyHabitSuggestions(f);
+  if (now === "wrap" && f.draft && !f.draft.done && hasRealContent(f.draft)) { f.draft.done = true; persistFlow(); }
+  render();
+}
+function finish() {
+  const f = S.flow;
+  const empty = flowEmpty(f), dayLogged = !!f.draft && hasRealContent(f.draft);
+  if (dayLogged) f.draft.done = true;
+  persistFlow(); S.flow = null; S.view = "home"; render();
+  if (empty) toast("Nothing was entered, so nothing was saved.");
+  else if (dayLogged) toast(f.date === logicalToday() ? "Tonight is logged." : fmt.med(f.date) + " is logged.");
+  else toast("Saved.");
+}
+function closeFlow() { persistFlow(); S.flow = null; S.view = "home"; render(); }
+function addPurchase(silent) {
+  const f = S.flow, sf = f.spendForm; const a = num(sf.amount);
+  if (a == null || a <= 0) { toast("Enter an amount above $0, or clear it."); return false; }
+  if (!sf.category) { toast("Pick a category for that purchase."); return false; }
+  const desc = (sf.desc || "").trim() || sf.category;
+  f.draft.spending.push({id: uid(), category: sf.category, desc, amount: Math.round(a * 100) / 100});
+  f.draft.noSpend = false; f.spendForm = {amount: "", desc: "", category: ""};
+  if (!silent) { toast(`Added ${desc} · ${fmt.money(a)}`); persistFlow(); render(); }
+  return true;
+}
+
+/* ---------- step views ---------- */
+const scale = (field, val, n = 10, cls = "") => `<div class="scale ${cls}" role="radiogroup">${Array.from({length: n}, (_, k) => k + 1).map(v =>
+  `<button role="radio" aria-checked="${val === v}" class="${val === v ? "on" : ""}" data-act="pick" data-field="${field}" data-v="${v}">${v}</button>`).join("")}</div>`;
+function whenRow(f) {
+  if (f.i !== 0 || f.kind !== "day") return "";
+  return `<label class="when">Logging <b>${esc(fmt.med(f.date))}</b> <u>Change</u><input type="date" data-change="flow-date" max="${realToday()}" value="${f.date}" aria-label="Change the day you're logging"></label>`;
+}
+const STEPS = {
+  mood: f => `<h2 class="q">How was today, overall?</h2>${whenRow(f)}${scale("mood", f.draft.mood)}<div class="ramp"></div><div class="scale-ends"><span>1 · rough</span><span>10 · great</span></div>${lastLogged("mood", f.date)}`,
+  energy: f => `<h2 class="q">How was your energy?</h2>${scale("energy", f.draft.energy)}<div class="ramp"></div><div class="scale-ends"><span>1 · running on empty</span><span>10 · wired</span></div>${lastLogged("energy", f.date)}`,
+  sleep: f => { const v = f.draft.sleep; return `<h2 class="q">How long did you sleep last night?</h2>
+    <div class="readout"><button class="round" data-act="sleep-step" data-d="-0.5" aria-label="Half an hour less">−</button>
+    <div class="big"><span class="num">${fmtNum(v)}</span><span class="unit">hrs</span></div>
+    <button class="round" data-act="sleep-step" data-d="0.5" aria-label="Half an hour more">+</button></div>
+    <div class="chips center">${[5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map(x => `<button class="chip ${v === x ? "on" : ""}" data-act="sleep-set" data-v="${x}">${x}</button>`).join("")}</div>`; },
+  workout: f => {
+    const d = f.draft, yes = d.workedOut === true, no = d.workedOut === false;
+    let h = `<h2 class="q">Did you work out today?</h2>
+      <div class="yesno"><button class="${no ? "on" : ""}" data-act="moved" data-v="no">Rest day</button><button class="${yes ? "on" : ""}" data-act="moved" data-v="yes">I worked out</button></div>`;
+    if (yes) h += d.workouts.map((w, i) => workoutCard(f, w, i)).join("") + `<button class="add-line" data-act="w-add">+ Add another workout</button>`;
+    return h;
+  },
+  habits: f => {
+    const d = f.draft, names = d.habitOrder;
+    if (!names.length) return `<h2 class="q">Which habits did you hit today?</h2><p class="hint">No habits set up yet. Add them in Settings and they'll show up here.</p>`;
+    const mk = monthKey(f.date), dim = daysInMonth(mk);
+    return `<h2 class="q">Which habits did you hit today?</h2><p class="hint">Tap to check off. Use N/A when it didn't apply. Counts are for ${esc(fmt.mon(mk))}.</p>
+    <div class="habits">${names.map((n, i) => { const st = d.habits[n] || ""; const tg = targetFor(n, dim);
+      return `<div class="habit ${st === "x" ? "done" : st === "n/a" ? "na" : ""}">
+        <button class="h-main" data-act="habit" data-hi="${i}" aria-pressed="${st === "x"}"><span class="tick">${st === "x" ? CHECK : ""}</span>
+        <span class="h-name">${esc(n)}${f.auto.has(n) && st === "x" ? "<em>Checked from what you logged</em>" : ""}</span>
+        <span class="h-count">${habitCount(n, mk, f)}${tg ? "/" + tg : ""}</span></button>
+        <button class="h-na" data-act="habit-na" data-hi="${i}" aria-pressed="${st === "n/a"}">N/A</button></div>`; }).join("")}</div>`;
+  },
+  spending: f => {
+    const d = f.draft, sf = f.spendForm, cats = S.config.categories, mk = monthKey(f.date);
+    const dayTotal = d.spending.reduce((s, t) => s + (+t.amount || 0), 0);
+    let budgetLine = "";
+    const cat = cats.find(c => c.name === sf.category);
+    if (cat && cat.budget) { const left = cat.budget - (monthSpend(mk).by[cat.name] || 0) - (num(sf.amount) || 0);
+      budgetLine = `<p class="budget ${left < 0 ? "over" : ""}">${esc(cat.name)}: ${fmt.money(left)} ${left < 0 ? "over" : "left"} of ${fmt.money(cat.budget)} for ${esc(fmt.mon(mk))}${num(sf.amount) ? " after this" : ""}</p>`; }
+    const quick = S.config.quick.slice(0, 10);
+    return `<h2 class="q">Did you spend anything today?</h2>
+    ${d.spending.length ? `<ul class="tx">${d.spending.map(t => `<li><span class="t-desc">${esc(t.desc)}<small>${esc(t.category)}</small></span><span class="t-amt">${fmt.money(+t.amount)}</span><button class="x" data-act="spend-remove" data-id="${esc(t.id)}" aria-label="Remove ${esc(t.desc)}">×</button></li>`).join("")}
+      <li class="tx-total"><span>Today</span><span class="t-amt">${fmt.money(dayTotal)}</span><span></span></li></ul>`
+      : d.noSpend ? `<p class="nospend">Marked as a no-spend day.</p>` : ""}
+    <div class="card">
+      <div class="amt-row"><span class="cur">$</span><input id="amt" inputmode="decimal" autocomplete="off" placeholder="0.00" data-bind="spend.amount" value="${esc(sf.amount)}" aria-label="Amount"></div>
+      <input list="descs" autocomplete="off" placeholder="What was it? e.g. Groceries run" data-bind="spend.desc" data-change="spend-desc" value="${esc(sf.desc)}" aria-label="Description">
+      <datalist id="descs">${descOptions()}</datalist>
+      <div class="chips" role="radiogroup" aria-label="Category">${cats.map(c => `<button class="chip sm ${sf.category === c.name ? "on" : ""}" data-act="cat" data-v="${esc(c.name)}">${esc(c.name)}</button>`).join("")}</div>
+      ${budgetLine}
+      <button class="secondary" data-act="spend-add">Add purchase</button>
+    </div>
+    ${quick.length ? `<p class="sub-h">Quick add</p><div class="chips">${quick.map((q, i) => `<button class="chip quick" data-act="quick" data-qi="${i}">${esc(q.desc)}<b>${q.amount != null ? fmt.money(q.amount) : ""}</b></button>`).join("")}</div>` : ""}
+    ${!d.spending.length && !d.noSpend ? `<button class="ghost wide" data-act="no-spend">Nothing today</button>` : ""}`;
+  },
+  highlight: f => textStep(f, "highlight", "What was the highlight of today?", "One moment worth remembering.", 3, "Small counts."),
+  felt: f => textStep(f, "felt", "How did you feel today, and why?", "Honest beats impressive.", 8, ""),
+  note: f => textStep(f, "note", "What happened today?", "Optional. This becomes the end-of-day note in your Weekly Planner.", 6, "Quick rundown of the day"),
+  week: f => {
+    const w = f.week, range = `${fmt.short(f.weekOf)} – ${fmt.short(addDays(f.weekOf, 6))}`;
+    const sw = f.kind === "week" ? `<div class="switch"><button data-act="week-shift" data-d="-1" aria-label="Previous week">‹</button><span>Week of ${esc(range)}</span><button data-act="week-shift" data-d="1" ${f.weekOf >= mondayOf(logicalToday()) ? "disabled" : ""} aria-label="Next week">›</button></div>` : `<p class="hint">Week of ${esc(range)}</p>`;
+    const F = (k, l) => `<label class="field"><span>${l}</span><textarea rows="2" data-bind="week.${k}">${esc(w[k])}</textarea></label>`;
+    return `<h2 class="q">Looking back on the week</h2>${sw}
+      ${F("win", "Biggest win")}${F("challenge", "Biggest challenge")}${F("learned", "What I learned")}${F("gratitude", "Gratitude (one thing)")}${F("different", "What I'll do differently")}
+      <div class="field"><span>Overall week (1–10)</span>${scale("overall", w.overall, 10, "ten")}</div>`;
+  },
+  plan: f => { const p = f.plan; return `<h2 class="q">Set up next week</h2><p class="hint">Week starting ${esc(fmt.long(f.nextOf))}</p>
+    <label class="field"><span>Intention for the week</span><input data-bind="plan.intention" value="${esc(p.intention)}"></label>
+    <div class="field"><span>Top 3 priorities</span>${[0, 1, 2].map(k => `<div class="prio"><b>${k + 1}.</b><input data-bind="plan.p.${k}" value="${esc(p.priorities[k] || "")}" aria-label="Priority ${k + 1}"></div>`).join("")}</div>`; },
+  month: f => {
+    const areas = S.config.lifeAreas; f.areas = areas;
+    const accts = [...S.config.accounts, ...S.config.liabilities]; f.balNames = accts;
+    const prev = prevLife(f.monthKey);
+    const sw = f.kind === "month" ? `<div class="switch"><button data-act="month-shift" data-d="-1" aria-label="Previous month">‹</button><span>${esc(fmt.month(f.monthKey))}</span><button data-act="month-shift" data-d="1" ${f.monthKey >= monthKey(logicalToday()) ? "disabled" : ""} aria-label="Next month">›</button></div>` : `<p class="hint">${esc(fmt.month(f.monthKey))}</p>`;
+    return `<h2 class="q">How is life looking this month?</h2>${sw}<p class="hint">Rate each area 1–10.</p>
+      ${areas.map((a, i) => `<div class="life"><div class="life-h"><span>${esc(a)}</span><span class="life-v">${f.month.life[a] ?? "–"}${prev && prev.vals[a] != null ? `<small>${esc(prev.label)}: ${prev.vals[a]}</small>` : ""}</span></div>${scale("life-" + i, f.month.life[a], 10, "ten")}</div>`).join("")}
+      ${accts.length ? `<details class="bal" ${f.balOpen ? "open" : ""}><summary>Account balances <small>for Net Worth</small></summary><div class="bal-list">${accts.map((a, i) => `<label class="field row"><span>${esc(a)}${i >= S.config.accounts.length ? " (owed)" : ""}</span><input inputmode="decimal" data-bind="bal.${i}" value="${f.month.balances[a] ?? ""}" placeholder="0.00"></label>`).join("")}</div></details>` : ""}`;
+  },
+  wrap: f => {
+    if (flowEmpty(f)) return `<h2 class="q done-q">Nothing entered yet.</h2><p class="hint">Tap Back to fill something in, or Finish to leave it for later.</p>`;
+    if (f.kind === "day" && !hasRealContent(f.draft)) return `<h2 class="q done-q">Saved.</h2><p class="hint">Your ${f.week && !(isStepEmpty(f, "week") && isStepEmpty(f, "plan")) ? "weekly" : "monthly"} answers are saved. Nothing was entered for ${esc(fmt.med(f.date))} itself, so that day stays open.</p>`;
+    if (f.kind === "week") return `<h2 class="q done-q">Week reflected.</h2><p class="hint">Saved for the week of ${esc(fmt.short(f.weekOf))}, plus your plan for the week of ${esc(fmt.short(f.nextOf))}.</p>`;
+    if (f.kind === "month") return `<h2 class="q done-q">Month checked in.</h2><p class="hint">Saved for ${esc(fmt.month(f.monthKey))}.</p>`;
+    const d = f.draft, streak = streakEnding(f.date);
+    const hab = d.habitOrder.filter(n => d.habits[n] === "x").length;
+    const spent = d.spending.reduce((s, t) => s + (+t.amount || 0), 0);
+    const wk = d.workedOut === true && d.workouts.find(w => w.type);
+    return `<h2 class="q done-q">${f.date === logicalToday() ? "That's today, logged." : esc(fmt.wd(f.date)) + ", logged."}</h2>
+      <div class="sum"><div><small>Mood</small><b>${d.mood ?? "–"}</b></div><div><small>Energy</small><b>${d.energy ?? "–"}</b></div><div><small>Sleep</small><b>${d.sleep != null ? fmtNum(d.sleep) + "h" : "–"}</b></div>
+      <div><small>Habits</small><b>${hab}/${d.habitOrder.length}</b></div><div><small>Workout</small><b>${wk ? esc(wk.type) : d.workedOut === false ? "Rest" : "–"}</b></div><div><small>Spent</small><b>${fmt.money(spent)}</b></div></div>
+      ${d.highlight ? `<blockquote class="hl">${esc(d.highlight)}</blockquote>` : ""}
+      ${streak > 1 ? `<p class="streak">${streak} days in a row.</p>` : ""}
+      <p class="hint">Tap Finish to close. You can change any day later from History.</p>`;
+  }
+};
+function lastLogged(field, before) {
+  const m = seriesMap(field); const d = Object.keys(m).filter(x => x < before).sort().pop();
+  return d ? `<p class="hint">Last logged: <b class="last-n">${fmtNum(m[d])}</b> on ${esc(fmt.med(d))}</p>` : "";
+}
+function textStep(f, key, q, hint, rows, ph) {
+  return `<h2 class="q">${q}</h2><p class="hint">${hint}</p><textarea class="big-text" id="txt" rows="${rows}" data-bind="day.${key}" placeholder="${esc(ph)}">${esc(f.draft[key])}</textarea>`;
+}
+function workoutCard(f, w, i) {
+  const last = w.type ? lastSession(w.type, f.date) : null;
+  return `<div class="card">
+    ${f.draft.workouts.length > 1 ? `<div class="wk-head"><span>Workout ${i + 1}</span><button class="link" data-act="w-remove" data-w="${i}">Remove</button></div>` : ""}
+    <div class="chips">${S.config.workoutTypes.map(t => `<button class="chip ${w.type === t ? "on" : ""}" data-act="w-type" data-w="${i}" data-v="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+    ${last && !w.what ? `<div class="last"><p class="last-h">Last ${esc(w.type)} · ${esc(fmt.med(last.d))}</p><p class="last-t">${esc(trunc(last.what, 260))}</p><button class="chip-btn" data-act="w-use-last" data-w="${i}">Start from this</button></div>` : ""}
+    <label class="field"><span>Duration (min)</span><input inputmode="decimal" data-bind="w.${i}.dur" value="${w.dur ?? ""}" placeholder="60"></label>
+    <div class="chips">${[30, 45, 60, 90].map(m => `<button class="chip sm ${w.dur === m ? "on" : ""}" data-act="w-dur" data-w="${i}" data-v="${m}">${m}</button>`).join("")}</div>
+    <div class="field"><span>Intensity (1–5)</span>${scale("w-int-" + i, w.int, 5, "five")}</div>
+    <label class="field"><span>What I did</span><textarea rows="5" data-bind="w.${i}.what" placeholder="Exercises, weights, sets, distance, pace…">${esc(w.what)}</textarea></label>
+    <label class="field"><span>How I felt / updates</span><textarea rows="2" data-bind="w.${i}.felt">${esc(w.felt)}</textarea></label>
+  </div>`;
+}
+function descOptions() {
+  const seen = new Set(); const out = [];
+  const push = s => { s = (s || "").trim(); if (s && !seen.has(s.toLowerCase())) { seen.add(s.toLowerCase()); out.push(`<option value="${esc(s)}"></option>`); } };
+  S.config.quick.forEach(q => push(q.desc));
+  Object.values(S.days).sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 60).forEach(d => (d.spending || []).forEach(t => push(t.desc)));
+  return out.slice(0, 60).join("");
+}
+function findPurchase(desc) {
+  const k = (desc || "").trim().toLowerCase(); if (!k) return null;
+  const q = S.config.quick.find(x => x.desc.toLowerCase() === k); if (q) return q;
+  const days = Object.values(S.days).sort((a, b) => (a.date < b.date ? 1 : -1));
+  for (const d of days) for (const t of d.spending || []) if ((t.desc || "").toLowerCase() === k) return {desc: t.desc, category: t.category, amount: t.amount};
+  return null;
+}
+
+function renderFlow() {
+  const f = S.flow, key = f.steps[f.i];
+  const catching = f.kind === "day" && f.date !== logicalToday();
+  return `<section class="flow">
+    <header class="flow-top"><button class="icon" data-act="close" aria-label="Save and close">×</button>
+      <div class="bars" aria-hidden="true">${f.steps.map((s, j) => `<i class="${j < f.i ? "past" : j === f.i ? "now" : ""}"></i>`).join("")}</div>
+      <span class="count">${f.i + 1}/${f.steps.length}</span></header>
+    <div class="flow-body" id="flowBody" data-scroll="flow-${key}">
+      <p class="step-k"><span>${STEP_LABEL[key]}</span>${f.kind === "day" ? `<span class="${catching ? "catch" : ""}">${esc(fmt.med(f.date))}${catching ? " · catching up" : ""}</span>` : ""}</p>
+      ${STEPS[key](f)}
+    </div>
+    <footer class="flow-nav"><button class="ghost" data-act="back" ${f.i === 0 ? "disabled" : ""}>Back</button><button class="primary" id="nextBtn" data-act="next">${nextLabel(f)}</button></footer>
+  </section>`;
+}
+
+/* ---------- home ---------- */
+function spark(vals, cls = "") {
+  const w = 120, h = 28, n = vals.length; if (n < 2 || !vals.some(v => v != null)) return "";
+  const x = i => (i / (n - 1)) * w, y = v => h - 2 - ((v - 1) / 9) * (h - 4);
+  const segs = []; let seg = [];
+  vals.forEach((v, i) => { if (v != null) seg.push([x(i), y(v)]); else if (seg.length) { segs.push(seg); seg = []; } });
+  if (seg.length) segs.push(seg);
+  const P = p => p[0].toFixed(1) + "," + p[1].toFixed(1);
+  let line = "", area = "", dots = "";
+  segs.forEach(s => { line += "M" + s.map(P).join("L"); if (s.length > 1) area += `M${s[0][0].toFixed(1)},${h}L${s.map(P).join("L")}L${s[s.length - 1][0].toFixed(1)},${h}Z`; else dots += `<circle cx="${s[0][0].toFixed(1)}" cy="${s[0][1].toFixed(1)}" r="1.6" class="spark-p"/>`; });
+  const last = segs[segs.length - 1]; const lp = last[last.length - 1];
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="spark ${cls}" aria-hidden="true"><path d="${area}" class="spark-a"/><path d="${line}" class="spark-l" vector-effect="non-scaling-stroke"/>${dots}<circle cx="${lp[0].toFixed(1)}" cy="${lp[1].toFixed(1)}" r="2.6" class="spark-p"/></svg>`;
+}
+function renderHome() {
+  const t = logicalToday(), td = S.days[t], name = S.config.name, hr = new Date().getHours();
+  const greet = hr < 4 ? "Still up" : hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
+  const ready = canEdit();
+  let cta;
+  if (!hasDayContent(td)) cta = `<button class="tonight" data-act="start" ${ready ? "" : "disabled"}><span class="t-k">${hr < 4 ? "Last night's" : "Tonight's"} check-in</span><span class="t-h">${ready ? "Start" : S.loadError ? "Unavailable" : "Loading…"}</span><span class="t-s">About three minutes, one question at a time</span><span class="arrow" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M4 11h13M12 5.5l5.5 5.5-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>`;
+  else if (!td.done) cta = `<button class="tonight" data-act="resume"><span class="t-k">Tonight's check-in</span><span class="t-h">Pick up where you left off</span><span class="t-s">Everything so far is saved</span><span class="arrow" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M4 11h13M12 5.5l5.5 5.5-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>`;
+  else { const bits = [td.mood != null && "Mood " + td.mood, td.energy != null && "Energy " + td.energy, td.sleep != null && "Sleep " + fmtNum(td.sleep) + "h"].filter(Boolean).join(" · ");
+    cta = `<button class="tonight done" data-act="start"><span class="t-k">Tonight's check-in</span><span class="t-h">Tonight is logged.</span><span class="t-s">${esc(bits || "Saved")}</span><span class="arrow">Edit</span></button>`; }
+
+  const dow = parseYmd(t).getDay(); const cards = [];
+  if (S.loaded && [6, 0, 1].includes(dow)) { const wk = dow === 1 ? addDays(mondayOf(t), -7) : mondayOf(t);
+    if (!weekDone(wk)) cards.push(`<button class="mini-card" data-act="open-week" data-week="${wk}"><div><b>Weekly reflection</b><span>Week of ${esc(fmt.short(wk))} – ${esc(fmt.short(addDays(wk, 6)))}, plus next week's top 3</span></div><span class="go" aria-hidden="true">›</span></button>`); }
+  if (S.loaded) { const d = parseYmd(t), mk0 = monthKey(t), dim = daysInMonth(mk0);
+    const mk = d.getDate() >= dim - 1 ? mk0 : d.getDate() <= 3 ? shiftMonth(mk0, -1) : null;
+    if (mk && !monthDone(mk)) cards.push(`<button class="mini-card" data-act="open-month" data-month="${mk}"><div><b>Monthly check-in</b><span>Rate your life areas for ${esc(fmt.mon(mk))}</span></div><span class="go" aria-hidden="true">›</span></button>`); }
+
+  if (S.loaded && backupDue()) cards.push(`<button class="mini-card" data-act="backup"><div><b>Back up your log</b><span>${isYmd(S.meta.lastBackupDay) ? "Last backup " + esc(fmt.short(S.meta.lastBackupDay)) : "No backup yet"}. Saves a file you can keep in iCloud Drive.</span></div><span class="go" aria-hidden="true">›</span></button>`);
+  let notice = "";
+  if (S.loadError) notice = `<p class="notice">Couldn't open your saved log. Nothing has been changed. <button class="link" data-act="retry-load">Try again</button></p>`;
+  else if (S.loaded && S.mode === "mem") notice = `<p class="notice">${SYNC_TEXT.mem}</p>`;
+  else if (isIOS && !isStandalone()) notice = `<p class="notice">${INSTALL_HINT}</p>`;
+  const html = `<div class="view" data-scroll="home">
+    <header><p class="eyebrow">My Life Tracker · nightly check-in</p>
+      <h1 class="hello">${greet}${name ? `, <em>${esc(name)}</em>` : ""}.</h1>
+      <p class="date-line">${esc(fmt.long(t))}</p></header>
+    ${notice}${cta}
+    ${renderCal(t, ready)}
+    ${cards.length ? `<div class="cards">${cards.join("")}</div>` : ""}
+    ${renderStats(t)}
+    <nav class="links"><button data-act="nav" data-to="history">History</button><button data-act="nav" data-to="settings">Settings</button><button data-act="nav" data-to="export">Data</button></nav>
+    <p class="sync" id="sync">${SYNC_TEXT[S.sync] || ""}</p>
+  </div>`;
+  return html;
+}
+function renderCal(t, ready) {
+  const start = addDays(mondayOf(t), -28), sheet = sheetDates(); let cells = "", k = 0;
+  for (let i = 0; i < 35; i++) {
+    const d = addDays(start, i), day = +d.slice(8);
+    if (d > t) { cells += `<span class="dot fut" aria-hidden="true">${day}</span>`; continue; }
+    const doc = S.days[d], app = hasDayContent(doc), sh = !app && sheet.has(d);
+    const cls = app ? (doc.done ? "app" : "part") : sh ? "sheet" : "open";
+    cells += `<button class="dot ${cls} ${d === t ? "today" : ""}" style="animation-delay:${(k++) * 14}ms" data-act="open-day" data-date="${d}" ${ready ? "" : "disabled"} aria-label="${esc(fmt.long(d))}${app ? ", logged" : sh ? ", in your spreadsheet" : ", not logged"}">${day}</button>`;
+  }
+  const open = lastNDays(7, addDays(t, -1)).filter(d => !hasDayContent(S.days[d]) && !sheet.has(d)).length;
+  const intro = !S.introShown && S.loaded; if (intro) S.introShown = true;
+  return `<section><div class="sec-h"><h3>Last five weeks</h3><span class="legend"><span><i class="app"></i>logged</span><span><i class="sheet"></i>spreadsheet</span><span><i class="open"></i>open</span></span></div>
+    <div class="cal-head" aria-hidden="true">${"MTWTFSS".split("").map(c => `<span>${c}</span>`).join("")}</div>
+    <div class="cal ${intro ? "intro" : ""}">${cells}</div>
+    ${S.loaded && open ? `<p class="cal-note">${open === 1 ? "One open day" : open + " open days"} in the past week. Tap a circle to fill one in.</p>` : ""}</section>`;
+}
+function renderStats(t) {
+  const d7 = lastNDays(7, t), d14 = lastNDays(14, t), mk = monthKey(t), dim = daysInMonth(mk), dayN = parseYmd(t).getDate();
+  const mm = seriesMap("mood"), em = seriesMap("energy"), sm = seriesMap("sleep");
+  const mo = avgOf(mm, d7), en = avgOf(em, d7), sl = avgOf(sm, d7);
+  let done = 0, tgt = 0; const names = S.config.habits.map(h => h.name);
+  S.config.habits.forEach(h => tgt += Math.min(h.target || dim, dim));
+  for (const d of Object.values(S.days)) if (d && d.date && d.date.startsWith(mk)) names.forEach(n => { if (d.habits && d.habits[n] === "x") done++; });
+  const pace = tgt ? Math.min(1, done / (tgt * dayN / dim)) : null;
+  let wkN = 0, lastW = null;
+  const inApp = d => { const x = S.days[d]; return !!(x && x.workedOut !== false && (x.workouts || []).some(w => w.type)); };
+  for (const w of S.history.workouts || []) { if (inApp(w.d)) continue; if (w.d.startsWith(mk)) wkN++; if (!lastW || w.d > lastW.d) lastW = {d: w.d, type: w.type}; }
+  for (const d of Object.values(S.days)) { if (!d || d.workedOut === false) continue; for (const w of d.workouts || []) if (w.type) { if (d.date.startsWith(mk)) wkN++; if (!lastW || d.date > lastW.d) lastW = {d: d.date, type: w.type}; } }
+  const sp = monthSpend(mk); let spent = 0, budget = 0;
+  for (const [c, v] of Object.entries(sp.by)) if (!isSavings(c)) spent += v;
+  S.config.categories.forEach(c => { if (!isSavings(c.name)) budget += +c.budget || 0; });
+  const free = budget - spent;
+  const tile = (k, v, s, extra = "") => `<div class="tile"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span>${extra}</div>`;
+  return `<section><div class="sec-h"><h3>How it's going</h3><span class="legend">last 7 days · ${esc(fmt.mon(mk))}</span></div><div class="stats">
+    ${tile("Mood", mo.avg == null ? "–" : mo.avg.toFixed(1), `${mo.n} of 7 days logged`, spark(d14.map(d => mm[d] ?? null)))}
+    ${tile("Energy", en.avg == null ? "–" : en.avg.toFixed(1), `${en.n} of 7 days logged`, spark(d14.map(d => em[d] ?? null), "teal"))}
+    ${tile("Sleep", sl.avg == null ? "–" : `${sl.avg.toFixed(1)}<small>hrs</small>`, "average per night")}
+    ${tile("Habits", pace == null ? "–" : `${Math.round(pace * 100)}<small>%</small>`, tgt ? `${done} check-offs vs. target pace` : "Set habits in Settings", pace == null ? "" : `<div class="bar-meter"><i style="width:${Math.round(pace * 100)}%"></i></div>`)}
+    ${tile("Workouts", String(wkN), lastW ? `Last: ${esc(lastW.type)}, ${esc(fmt.short(lastW.d))}` : "None logged yet")}
+    ${tile("Spent", fmt.money0(spent), budget ? `${fmt.money0(free)} ${free < 0 ? "over budget" : "free to spend"}` : "No budget set", budget ? `<div class="bar-meter ${free < 0 ? "over" : ""}"><i style="width:${Math.min(100, Math.round(spent / budget * 100))}%"></i></div>` : "")}
+  </div></section>`;
+}
+
+/* ---------- history ---------- */
+function chart30() {
+  const t = logicalToday(), days = lastNDays(30, t), mm = seriesMap("mood"), em = seriesMap("energy");
+  if (!days.some(d => mm[d] != null || em[d] != null)) return `<p class="empty">No mood logged in the last 30 days yet. It'll chart here as you go.</p>`;
+  const W = 320, H = 150, L = 20, R = 8, T = 8, B = 20;
+  const x = i => L + (i / (days.length - 1)) * (W - L - R), y = v => T + (1 - (v - 1) / 9) * (H - T - B);
+  let g = "";
+  [2, 4, 6, 8, 10].forEach(v => { g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L - 6}" y="${(y(v) + 3).toFixed(1)}" text-anchor="end">${v}</text>`; });
+  [0, 15, 29].forEach(i => { g += `<text x="${x(i).toFixed(1)}" y="${H - 4}" text-anchor="${i === 0 ? "start" : i === 29 ? "end" : "middle"}">${esc(fmt.short(days[i]))}</text>`; });
+  const line = (m, cls, pcls) => {
+    let d = "", pts = "", run = [], last = null;
+    days.forEach((day, i) => { const v = m[day]; if (v == null) { if (run.length) { d += "M" + run.join("L"); run = []; } return; } const p = `${x(i).toFixed(1)},${y(v).toFixed(1)}`; run.push(p); pts += `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.2" class="${pcls}"/>`; last = [x(i), y(v)]; });
+    if (run.length) d += "M" + run.join("L");
+    return `<path d="${d}" class="${cls}"/>${pts}${last ? `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="4" class="${pcls}"/>` : ""}`;
+  };
+  return `<div class="chart-legend"><span><i style="background:var(--amber)"></i>Mood</span><span><i style="background:var(--teal)"></i>Energy</span></div>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Mood and energy over the last 30 days">${g}${line(em, "le", "pe")}${line(mm, "lm", "pm")}</svg>`;
+}
+function renderHistory() {
+  const days = Object.values(S.days).filter(hasDayContent).sort((a, b) => (a.date < b.date ? 1 : -1));
+  let list = "", cur = "";
+  for (const d of days) {
+    const mk = monthKey(d.date);
+    if (mk !== cur) { if (cur) list += "</div>"; list += `<h3 class="month-h">${esc(fmt.month(mk))}</h3><div class="day-list">`; cur = mk; }
+    const nums = [d.mood != null && "M " + d.mood, d.energy != null && "E " + d.energy, d.sleep != null && fmtNum(d.sleep) + "h"].filter(Boolean).join(" · ");
+    const wk = d.workedOut !== false && (d.workouts || []).find(w => w.type);
+    const spent = (d.spending || []).reduce((s, t) => s + (+t.amount || 0), 0);
+    list += `<button class="day-row" data-act="open-day" data-date="${d.date}"><span class="dr-date"><b>${+d.date.slice(8)}</b><small>${esc(fmt.wds(d.date))}</small></span>
+      <span class="dr-main"><span class="dr-nums">${esc(nums || "No ratings")}</span><span class="dr-hl">${esc(d.highlight || d.felt || d.note || " ")}</span></span>
+      <span class="badges">${!d.done ? `<span class="badge partial">unfinished</span>` : ""}${wk ? `<span class="badge">${esc(wk.type)}</span>` : ""}${spent ? `<span class="badge">${fmt.money0(spent)}</span>` : ""}</span></button>`;
+  }
+  if (cur) list += "</div>";
+  return `<div class="view" data-scroll="history">
+    <header class="bar"><button class="back" data-act="nav" data-to="home">‹ Home</button><h1>History</h1></header>
+    <div class="chart-card">${chart30()}</div>
+    <div class="row-btns"><label>Log a day<input type="date" data-change="pick-day" max="${realToday()}" aria-label="Pick a day to log"></label>
+      <button data-act="open-week">Weekly</button><button data-act="open-month">Monthly</button></div>
+    ${list || `<p class="empty">Days you log in the app will be listed here. Entries from before the app live in your spreadsheet.</p>`}
+  </div>`;
+}
+
+/* ---------- settings ---------- */
+function openSettings() {
+  S.settingsDraft = {name: S.config.name || "", habits: clone(S.config.habits), categories: clone(S.config.categories), quick: clone(S.config.quick),
+    workoutTypes: S.config.workoutTypes.slice(), lifeAreas: S.config.lifeAreas.slice(), accounts: S.config.accounts.slice(), liabilities: S.config.liabilities.slice(), moreOpen: false};
+  S.view = "settings"; render();
+}
+function renderSettings() {
+  const s = S.settingsDraft, cats = S.config.categories.map(c => c.name);
+  const strList = (key, label) => `<div class="sec"><h3>${label}</h3>${s[key].map((v, i) => `<div class="set-row two"><input data-bind="set.${key}.${i}" value="${esc(v)}" aria-label="${label}"><button class="x" data-act="set-del" data-list="${key}" data-i="${i}" aria-label="Remove">×</button></div>`).join("")}<button class="add-line" data-act="set-add" data-list="${key}">+ Add</button></div>`;
+  return `<section class="flow"><header class="flow-top"><button class="icon" data-act="nav" data-to="home" aria-label="Close without saving">×</button><h1 class="set-title">Settings</h1></header>
+  <div class="flow-body" data-scroll="settings">
+    <section class="sec"><h3>Your name</h3><input data-bind="set.name" value="${esc(s.name)}" aria-label="Your name"></section>
+    <section class="sec"><h3>Habits</h3><p class="hint">Changes apply to the days you log from now on. Days already logged keep their own list.</p>
+      <div class="set-cols"><span>Habit</span><span>Days/mo</span><span></span></div>
+      ${s.habits.map((h, i) => `<div class="set-row"><input data-bind="set.habits.${i}.name" value="${esc(h.name)}" aria-label="Habit name"><input class="n" inputmode="numeric" data-bind="set.habits.${i}.target" value="${h.target ?? ""}" aria-label="Target days per month"><button class="x" data-act="set-del" data-list="habits" data-i="${i}" aria-label="Remove habit">×</button></div>`).join("")}
+      <button class="add-line" data-act="set-add" data-list="habits">+ Add habit</button></section>
+    <section class="sec"><h3>Monthly budget</h3>
+      <div class="set-cols"><span>Category</span><span>Budget</span><span></span></div>
+      ${s.categories.map((c, i) => `<div class="set-row"><input data-bind="set.categories.${i}.name" value="${esc(c.name)}" aria-label="Category name"><input class="n" inputmode="decimal" data-bind="set.categories.${i}.budget" value="${c.budget ?? ""}" aria-label="Monthly budget"><button class="x" data-act="set-del" data-list="categories" data-i="${i}" aria-label="Remove category">×</button></div>`).join("")}
+      <button class="add-line" data-act="set-add" data-list="categories">+ Add category</button></section>
+    <section class="sec"><h3>Quick-add purchases</h3><p class="hint">One tap on the spending step adds these.</p>
+      ${s.quick.map((q, i) => `<div class="set-quick"><input class="d" data-bind="set.quick.${i}.desc" value="${esc(q.desc)}" aria-label="Description">
+        <select class="c" data-bind="set.quick.${i}.category" aria-label="Category">${cats.map(c => `<option ${c === q.category ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>
+        <input class="a" inputmode="decimal" data-bind="set.quick.${i}.amount" value="${q.amount ?? ""}" aria-label="Amount"><button class="x" data-act="set-del" data-list="quick" data-i="${i}" aria-label="Remove">×</button></div>`).join("")}
+      <button class="add-line" data-act="set-add" data-list="quick">+ Add quick purchase</button></section>
+    <details class="bal" data-more ${s.moreOpen ? "open" : ""}><summary>Other lists <small>workout types, life areas, accounts</small></summary>
+      ${strList("workoutTypes", "Workout types")}${strList("lifeAreas", "Life areas (monthly check-in)")}${strList("accounts", "Accounts (Net Worth)")}${strList("liabilities", "Debts (Net Worth)")}
+    </details>
+    <p class="sync" id="sync">${SYNC_TEXT[S.sync] || ""}</p>
+  </div>
+  <footer class="flow-nav"><button class="ghost" data-act="nav" data-to="home">Cancel</button><button class="primary" data-act="set-save">Save settings</button></footer></section>`;
+}
+function saveSettings() {
+  const s = S.settingsDraft;
+  const uniq = (rows, key) => { const seen = new Set(); return rows.filter(r => { const k = (key ? r[key] : r).toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }); };
+  const strs = k => uniq(s[k].map(x => String(x || "").trim()).filter(Boolean));
+  const habits = uniq(s.habits.map(h => ({name: (h.name || "").trim(), target: h.target ? Math.max(1, Math.min(31, Math.round(h.target))) : null})).filter(h => h.name), "name");
+  const categories = uniq(s.categories.map(c => ({name: (c.name || "").trim(), budget: c.budget || 0})).filter(c => c.name), "name");
+  const quick = s.quick.map(q => ({desc: (q.desc || "").trim(), category: q.category || (categories[0] && categories[0].name) || "", amount: q.amount})).filter(q => q.desc);
+  const cfg = Object.assign(clone(S.config), {name: (s.name || "").trim(), habits, categories, quick,
+    workoutTypes: strs("workoutTypes"), lifeAreas: strs("lifeAreas"), accounts: strs("accounts"), liabilities: strs("liabilities"), updatedAt: new Date().toISOString()});
+  save("app/config", cfg);
+  if (!S.meta.setupDone) save("app/meta", Object.assign({}, S.meta, {setupDone: true, updatedAt: new Date().toISOString()}));
+  S.settingsDraft = null; S.view = "home"; render(); toast("Settings saved.");
+}
+
+/* ---------- export ---------- */
+const serial = s => { const [y, m, d] = s.split("-").map(Number); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000; };
+function sheetOf(name, where, header, rows, dateCols, widths) {
+  const aoa = [header, ...rows], dateCells = [];
+  rows.forEach((r, ri) => dateCols.forEach(c => { if (r[c]) dateCells.push([ri + 1, c]); }));
+  return {name, where, aoa, dateCells, widths, count: rows.length, copyFrom: 1};
+}
+function buildExport(from, to) {
+  const inR = d => d >= from && d <= to;
+  const days = Object.values(S.days).filter(d => d && d.date && inR(d.date) && hasDayContent(d)).sort((a, b) => (a.date < b.date ? -1 : 1));
+  const sheets = [];
+  sheets.push(sheetOf("Mood", "Mood · columns A–F", ["Date", "Mood (1-10)", "Energy (1-10)", "Sleep (hrs)", "Highlight of the day", "How I felt & why"],
+    days.filter(d => d.mood != null || d.energy != null || d.sleep != null || d.highlight || d.felt).map(d => [d.date, d.mood ?? "", d.energy ?? "", d.sleep ?? "", d.highlight || "", d.felt || ""]), [0], [12, 11, 12, 10, 40, 60]));
+  // Habits: one block per month, laid out like Habits Data (Habit, Target, days 1–31)
+  const byMonth = {};
+  days.forEach(d => { if (Object.values(d.habits || {}).some(Boolean)) (byMonth[monthKey(d.date)] = byMonth[monthKey(d.date)] || []).push(d); });
+  const hAoa = [], hDates = []; let hCount = 0;
+  for (const mk of Object.keys(byMonth).sort()) {
+    const ds = byMonth[mk], dim = daysInMonth(mk), names = [];
+    S.config.habits.forEach(h => { if (ds.some(d => (d.habitOrder || []).includes(h.name) || d.habits[h.name])) names.push(h.name); });
+    ds.forEach(d => (d.habitOrder || Object.keys(d.habits)).forEach(n => { if (!names.includes(n)) names.push(n); }));
+    hDates.push([hAoa.length, 0]); hAoa.push([mk + "-01", "Paste the habit rows below into this month's block on Habits Data"]);
+    hAoa.push(["Habit", "Target (days/mo)", ...Array.from({length: 31}, (_, i) => i + 1 <= dim ? i + 1 : "")]);
+    names.forEach(n => {
+      const row = [n, targetFor(n, dim) ?? ""];
+      for (let day = 1; day <= 31; day++) { const d = ds.find(x => x.date === `${mk}-${pad(day)}`); const st = d && d.habits[n]; row.push(st === "x" ? "x" : st === "n/a" ? "n/a" : ""); }
+      hAoa.push(row); hCount++;
+    });
+    hAoa.push([]);
+  }
+  sheets.push({name: "Habits", where: "Habits Data · one block per month", aoa: hAoa, dateCells: hDates, widths: [26, 10, ...Array(31).fill(4)], count: hCount, copyFrom: 0});
+  const fit = [];
+  days.forEach(d => { if (d.workedOut === false) return; (d.workouts || []).forEach(w => { if (w.type || w.what) fit.push([d.date, w.type || "", w.dur ?? "", w.int ?? "", w.what || "", w.felt || ""]); }); });
+  sheets.push(sheetOf("Fitness", "Fitness · columns A–F", ["Date", "Type", "Duration (min)", "Intensity (1-5)", "What I did", "How I felt / updates"], fit, [0], [12, 12, 13, 13, 50, 40]));
+  const tx = [];
+  days.forEach(d => (d.spending || []).forEach(t => tx.push([d.date, t.category, t.desc, +t.amount])));
+  sheets.push(sheetOf("Transactions", "Finances · Transactions, columns A–D", ["Date", "Category", "Description", "Amount"], tx, [0], [12, 18, 36, 10]));
+  sheets.push(sheetOf("Planner notes", "Weekly Planner · What happened today", ["Date", "Day", "What happened today"],
+    days.filter(d => (d.note || "").trim()).map(d => [d.date, fmt.wd(d.date), d.note]), [0], [12, 11, 70]));
+  const wFrom = mondayOf(from);
+  const refl = Object.values(S.weeks).filter(w => w && w.reflection && w.weekOf >= wFrom && w.weekOf <= to && Object.values(w.reflection).some(v => v != null && v !== "")).sort((a, b) => (a.weekOf < b.weekOf ? -1 : 1));
+  sheets.push(sheetOf("Weekly Reflection", "Weekly Reflection · columns A–G", ["Week of", "Biggest win", "Biggest challenge", "What I learned", "Gratitude (1 thing)", "What I'll do differently", "Overall week (1-10)"],
+    refl.map(w => { const r = w.reflection; return [w.weekOf, r.win || "", r.challenge || "", r.learned || "", r.gratitude || "", r.different || "", r.overall ?? ""]; }), [0], [12, 34, 34, 34, 30, 34, 10]));
+  const plans = Object.values(S.weeks).filter(w => w && w.plan && w.weekOf >= wFrom && w.weekOf <= addDays(to, 7) && (w.plan.intention || (w.plan.priorities || []).some(Boolean))).sort((a, b) => (a.weekOf < b.weekOf ? -1 : 1));
+  sheets.push(sheetOf("Week plans", "Weekly Planner · intention + top 3", ["Week starting (Monday)", "Intention for the week", "Priority 1", "Priority 2", "Priority 3"],
+    plans.map(w => [w.weekOf, w.plan.intention || "", ...(w.plan.priorities || []).concat(["", "", ""]).slice(0, 3)]), [0], [14, 40, 30, 30, 30]));
+  const mFrom = monthKey(from), mTo = monthKey(to);
+  const months = Object.values(S.months).filter(m => m && m.month >= mFrom && m.month <= mTo).sort((a, b) => (a.month < b.month ? -1 : 1));
+  const lifeM = months.filter(m => m.life && Object.keys(m.life).length);
+  const label = mk => parseYmd(mk + "-01").toLocaleDateString("en-US", {month: "short"}) + " " + mk.slice(2, 4);
+  sheets.push({name: "Life Check-in", where: "Life Check-in · one column per month", aoa: lifeM.length ? [["Life area", ...lifeM.map(m => label(m.month))], ...S.config.lifeAreas.map(a => [a, ...lifeM.map(m => m.life[a] ?? "")])] : [],
+    dateCells: [], widths: [20, 9, 9, 9], count: lifeM.length, copyFrom: 0});
+  const balM = months.filter(m => m.balances && Object.keys(m.balances).length);
+  const accts = [...S.config.accounts, ...S.config.liabilities];
+  sheets.push(sheetOf("Net Worth", "Finances · Net Worth tracker", ["Month", ...accts], balM.map(m => [m.month + "-01", ...accts.map(a => m.balances[a] ?? "")]), [0], [12, ...accts.map(() => 14)]));
+  const total = sheets.reduce((s, x) => s + x.count, 0);
+  return {sheets, total, days: days.length};
+}
+const toTSV = rows => rows.map(r => r.map(c => { const s = c == null ? "" : String(c); return /[\t\n"]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join("\t")).join("\n");
+let xlsxP = null;
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (!xlsxP) xlsxP = new Promise((res, rej) => {
+    const s = document.createElement("script"); s.src = "vendor/xlsx.full.min.js";
+    s.onload = () => { if (window.XLSX) res(window.XLSX); else { xlsxP = null; rej(new Error("load")); } };
+    s.onerror = () => { xlsxP = null; s.remove(); rej(new Error("load")); };
+    document.head.appendChild(s);
+  });
+  return xlsxP;
+}
+function earliestAppDate() { const ds = Object.values(S.days).filter(hasDayContent).map(d => d.date).sort(); return ds[0] || null; }
+function openExport() {
+  const from = S.meta.exportedThrough ? addDays(S.meta.exportedThrough, 1) : (earliestAppDate() || logicalToday());
+  S.exportOpts = {from, to: logicalToday()}; S.view = "export"; S.xlsxFailed = false; render();
+  const slot = () => { const el = $("#xlSlot"); if (el && S.view === "export") el.innerHTML = xlSlotHTML(); };
+  loadXLSX().then(slot, () => { S.xlsxFailed = true; slot(); });
+}
+function xlSlotHTML() {
+  return window.XLSX ? `<button class="primary wide" data-act="exp-download">Get Excel file</button>`
+    : S.xlsxFailed ? `<p class="notice">The Excel builder didn't load. Use Copy on each row instead, or reopen the app while online and try again.</p>`
+    : `<button class="primary wide" disabled>Preparing…</button>`;
+}
+function countsHTML() {
+  const o = S.exportOpts; if (!o.from || !o.to || o.from > o.to) return `<p class="hint">Pick a start date on or before the end date.</p>`;
+  const ex = buildExport(o.from, o.to);
+  if (!ex.total) return `<p class="empty">Nothing logged in the app between ${esc(fmt.short(o.from))} and ${esc(fmt.short(o.to))}.</p>`;
+  return `<ul class="exp-list">${ex.sheets.map((s, i) => s.count ? `<li><span>${esc(s.name)}<small>Paste into ${esc(s.where)}</small></span><span class="n">${s.count}</span><button class="chip sm" data-act="exp-copy" data-sheet="${i}">Copy</button></li>` : "").join("")}</ul>`;
+}
+function renderExport() {
+  const o = S.exportOpts, m = S.meta;
+  const nDays = Object.values(S.days).filter(hasDayContent).length;
+  return `<div class="view" data-scroll="export">
+    <header class="bar"><button class="back" data-act="nav" data-to="home">‹ Home</button><h1>Your data</h1></header>
+    <section class="sec"><h3>Send entries to your spreadsheet</h3>
+      <p class="lede">Bring what you logged here back into <b>My Life Tracker</b>. Each tab keeps the same column order as the matching sheet, so the rows paste straight in.</p>
+      <div class="range"><label class="field"><span>From</span><input type="date" id="expFrom" data-bind="exp.from" value="${o.from}"></label><label class="field"><span>To</span><input type="date" id="expTo" data-bind="exp.to" value="${o.to}"></label></div>
+      <p class="hint">${m.exportedThrough ? `Your last export went through ${esc(fmt.med(m.exportedThrough))}, so this starts the day after.` : "This is your first export, so it starts at your first day in the app."}</p>
+      <div id="expCounts">${countsHTML()}</div>
+      <div id="xlSlot">${xlSlotHTML()}</div>
+      <p class="hint">Copy puts the rows (without headers) on your clipboard, ready to paste at the first empty row of the matching sheet.</p>
+    </section>
+    <section class="sec"><h3>Backup</h3>
+      <p class="lede">Your log is stored <b>only on this device</b>, and deleting the app's icon erases it. A backup file holds everything: ${nDays} logged day${nDays === 1 ? "" : "s"}, your habits, budgets and history.</p>
+      <p class="hint">${m.lastBackupDay ? `Last backup: ${esc(fmt.med(m.lastBackupDay))}.` : "No backup made yet."} Save the file somewhere off this device, like iCloud Drive.</p>
+      <div class="data-btns"><button data-act="backup">Back up now</button><button data-act="pick-restore">Restore a backup</button></div>
+      <p class="hint">Restoring adds what's in the file. Where a day exists in both places, the most recently edited version is kept.</p>
+    </section>
+    <section class="sec"><h3>Set up from your spreadsheet</h3>
+      <p class="lede">Reads your habits, budget categories, quick-add purchases, accounts, and past mood and workout history from My Life Tracker (.xlsx). Days you logged in the app aren't touched.</p>
+      <div class="data-btns one"><button data-act="pick-import">Import spreadsheet</button></div>
+    </section>
+    <p class="sync" id="sync">${SYNC_TEXT[S.sync] || ""}</p>
+  </div>`;
+}
+
+/* Hand a generated file to the person: the share sheet on iPhone (Save to Files), a normal download elsewhere. */
+function downloadFile(name, data, mime) {
+  const url = URL.createObjectURL(new Blob([data], {type: mime}));
+  const a = document.createElement("a"); a.href = url; a.download = name; a.rel = "noopener"; a.style.display = "none";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return "downloaded";
+}
+function deliverFile(name, data, mime) {
+  try {
+    if (isIOS && typeof File === "function" && navigator.share && navigator.canShare) {
+      const file = new File([data], name, {type: mime});
+      if (navigator.canShare({files: [file]})) {
+        return navigator.share({files: [file]}).then(() => "shared", e => (e && e.name === "AbortError") ? "cancelled" : downloadFile(name, data, mime));
+      }
+    }
+  } catch (e) {}
+  try { return Promise.resolve(downloadFile(name, data, mime)); } catch (e) { return Promise.resolve("failed"); }
+}
+const XMIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+function buildWorkbook(ex) {
+  const XLSX = window.XLSX, wb = XLSX.utils.book_new();
+  for (const sh of ex.sheets) {
+    if (!sh.count) continue;
+    const ws = XLSX.utils.aoa_to_sheet(sh.aoa);
+    for (const [r, c] of sh.dateCells) { const v = sh.aoa[r][c]; if (v) ws[XLSX.utils.encode_cell({r, c})] = {t: "n", v: serial(v), z: "yyyy-mm-dd"}; }
+    ws["!cols"] = sh.widths.map(w => ({wch: w}));
+    XLSX.utils.book_append_sheet(wb, ws, sh.name);
+  }
+  return XLSX.write(wb, {bookType: "xlsx", type: "array"});
+}
+function doExportFile() {
+  const o = S.exportOpts;
+  if (!o.from || !o.to || o.from > o.to) { toast("Pick a start date on or before the end date."); return; }
+  const ex = buildExport(o.from, o.to);
+  if (!ex.total) { toast("Nothing logged in that range yet."); return; }
+  if (!window.XLSX) { toast("The Excel builder isn't ready. Use Copy instead."); return; }
+  let buf;
+  try { buf = buildWorkbook(ex); } catch (e) { toast("Couldn't build the Excel file. Use Copy instead."); return; }
+  deliverFile(`Life Tracker phone entries ${o.from} to ${o.to}.xlsx`, buf, XMIME).then(r => {
+    if (r === "cancelled") return;
+    if (r === "failed") { toast("Couldn't hand over the file. Use Copy instead."); return; }
+    const through = (S.meta.exportedThrough || "") > o.to ? S.meta.exportedThrough : o.to;
+    save("app/meta", Object.assign({}, S.meta, {exportedThrough: through, updatedAt: new Date().toISOString()}));
+    toast(r === "shared" ? "Excel file sent." : "Excel file downloaded.");
+    if (S.view === "export") render();
+  });
+}
+function doCopy(i) {
+  const o = S.exportOpts; const sh = buildExport(o.from, o.to).sheets[+i]; if (!sh) return;
+  const text = toTSV(sh.aoa.slice(sh.copyFrom));
+  if (!navigator.clipboard || !navigator.clipboard.writeText) { toast("Copying isn't available here. Use the Excel file."); return; }
+  navigator.clipboard.writeText(text).then(() => toast(`Copied ${sh.count} ${sh.name} row${sh.count === 1 ? "" : "s"}.`), () => toast("Copying was blocked. Use the Excel file instead."));
+}
+
+/* ---------- backup + restore ---------- */
+function buildBackup() {
+  return {format: "life-tracker-backup", version: 1, savedAt: new Date().toISOString(), app: {config: S.config, history: S.history, meta: S.meta}, days: S.days, weeks: S.weeks, months: S.months};
+}
+function backupDue() {
+  if (!Object.values(S.days).some(hasDayContent)) return false;
+  const last = S.meta.lastBackupDay;
+  return !isYmd(last) || daysBetween(last, realToday()) >= 7;
+}
+function doBackup() {
+  if (!S.loaded) { toast("Still opening your log…"); return; }
+  persistFlow();
+  let text;
+  try { text = JSON.stringify(buildBackup()); } catch (e) { toast("Couldn't build the backup."); return; }
+  deliverFile(`life-tracker-backup-${realToday()}.json`, text, "application/json").then(r => {
+    if (r === "cancelled") return;
+    if (r === "failed") { toast("Couldn't hand over the backup file."); return; }
+    save("app/meta", Object.assign({}, S.meta, {lastBackupDay: realToday(), updatedAt: new Date().toISOString()}));
+    toast(r === "shared" ? "Backup sent." : "Backup downloaded.");
+    if (S.view === "export" || S.view === "home") render();
+  });
+}
+function readFile(file, how) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result); fr.onerror = () => rej(fr.error || new Error("read"));
+    if (how === "text") fr.readAsText(file); else fr.readAsArrayBuffer(file);
+  });
+}
+function readBackup(text) {
+  let b; try { b = JSON.parse(text); } catch (e) { return null; }
+  if (!b || typeof b !== "object" || b.format !== "life-tracker-backup") return null;
+  const obj = x => (x && typeof x === "object" && !Array.isArray(x)) ? x : {};
+  const out = {savedAt: typeof b.savedAt === "string" ? b.savedAt : "", app: obj(b.app), days: {}, weeks: {}, months: {}};
+  for (const [k, v] of Object.entries(obj(b.days))) {
+    if (!isYmd(k) || !v || typeof v !== "object" || Array.isArray(v)) continue;
+    const d = Object.assign({}, v, {date: k});
+    d.habits = obj(d.habits);
+    if (!Array.isArray(d.workouts)) d.workouts = [];
+    if (!Array.isArray(d.spending)) d.spending = [];
+    if (d.habitOrder && !Array.isArray(d.habitOrder)) delete d.habitOrder;
+    out.days[k] = d;
+  }
+  for (const [k, v] of Object.entries(obj(b.weeks))) if (isYmd(k) && v && typeof v === "object" && !Array.isArray(v)) out.weeks[k] = Object.assign({}, v, {weekOf: k});
+  for (const [k, v] of Object.entries(obj(b.months))) if (/^\d{4}-\d{2}$/.test(k) && v && typeof v === "object" && !Array.isArray(v)) out.months[k] = Object.assign({}, v, {month: k});
+  return out;
+}
+function onRestoreFile(file) {
+  readFile(file, "text").then(text => {
+    const b = readBackup(text);
+    if (!b) { toast("That file isn't a Life Tracker backup."); return; }
+    const dates = Object.keys(b.days).sort(), n = dates.length;
+    const cfg = (b.app.config && typeof b.app.config === "object") ? normalizeConfig(b.app.config) : null;
+    const hist = (b.app.history && typeof b.app.history === "object") ? normalizeHistory(b.app.history) : null;
+    const items = [];
+    items.push(n ? `${n} logged day${n === 1 ? "" : "s"} (${esc(fmt.short(dates[0]))} to ${esc(fmt.short(dates[n - 1]))})` : "No logged days");
+    if (cfg) items.push(`${cfg.habits.length} habit${cfg.habits.length === 1 ? "" : "s"} and ${cfg.categories.length} budget categories`);
+    if (hist && (hist.mood.length || hist.workouts.length)) items.push(`Spreadsheet history: ${hist.mood.length} days of mood and sleep, ${hist.workouts.length} workouts`);
+    const saved = b.savedAt && !isNaN(new Date(b.savedAt)) ? new Date(b.savedAt).toLocaleDateString("en-US", {month: "long", day: "numeric", year: "numeric"}) : "";
+    S.modal = {title: "Restore this backup?", ok: "Restore",
+      body: `<p>${saved ? `Saved ${esc(saved)}. ` : ""}It holds:</p><ul>${items.map(x => `<li>${x}</li>`).join("")}</ul><p>Where a day exists both here and in the file, the most recently edited version is kept.</p>`,
+      onOk: () => applyBackup(b)};
+    render();
+  }, () => toast("Couldn't read that file."));
+}
+function applyBackup(b) {
+  const ops = []; let n = 0; const now = new Date().toISOString();
+  for (const coll of COLLS) for (const [id, doc] of Object.entries(b[coll])) {
+    const cur = S[coll][id];
+    if (!cur || (doc.updatedAt || "") >= (cur.updatedAt || "")) { ops.push([coll + "/" + id, doc]); if (coll === "days") n++; }
+  }
+  const a = b.app;
+  if (a.config && typeof a.config === "object" && (!S.hasConfig || (a.config.updatedAt || "") >= (S.config.updatedAt || ""))) ops.push(["app/config", normalizeConfig(a.config)]);
+  if (a.history && typeof a.history === "object" && (!S.hasHistory || (a.history.updatedAt || "") >= (S.history.updatedAt || ""))) ops.push(["app/history", normalizeHistory(a.history)]);
+  const bm = (a.meta && typeof a.meta === "object") ? a.meta : {};
+  const meta = Object.assign({}, S.meta, {setupDone: true, updatedAt: now});
+  if (isYmd(bm.exportedThrough) && bm.exportedThrough > (meta.exportedThrough || "")) meta.exportedThrough = bm.exportedThrough;
+  ops.push(["app/meta", meta]);
+  saveMany(ops);
+  S.view = "home"; S.exportOpts = null; S.settingsDraft = null; render();
+  toast(n ? `Restored ${n} day${n === 1 ? "" : "s"}.` : "Backup restored.");
+}
+
+/* ---------- import from the My Life Tracker workbook ---------- */
+function parseTracker(wb, XLSX) {
+  const U = XLSX.utils;
+  const get = (ws, r, c) => { const x = ws && ws[U.encode_cell({r: r - 1, c: c - 1})]; return x == null ? undefined : x.v; };
+  const dims = ws => { try { const e = U.decode_range(ws["!ref"]).e; return {rows: e.r + 1, cols: e.c + 1}; } catch (e) { return {rows: 0, cols: 0}; } };
+  const N = v => (typeof v === "number" && isFinite(v)) ? v : (typeof v === "string" && /^\s*-?\d+(\.\d+)?\s*$/.test(v)) ? parseFloat(v) : null;
+  const T = v => v == null ? "" : String(v).replace(/\r\n?/g, "\n");
+  const D = v => {
+    if (typeof v !== "number" || !isFinite(v) || v < 30000 || v > 80000) return null;
+    const t = new Date((Math.floor(v) - 25569) * 86400000);
+    return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+  };
+  const out = {found: false, mood: null, workouts: null, life: null, lifeAreas: [], categories: [], quick: [], accounts: [], liabilities: [], habits: [], habitsMonth: null};
+
+  let ws = wb.Sheets["Mood"];
+  if (ws) {
+    out.found = true; out.mood = [];
+    for (let r = 5, n = dims(ws).rows; r <= n; r++) {
+      const d = D(get(ws, r, 1)); if (!d) continue;
+      const m = N(get(ws, r, 2)), e = N(get(ws, r, 3)), s = N(get(ws, r, 4));
+      if (m == null && e == null && s == null) continue;
+      out.mood.push({d, m, e, s});
+    }
+  }
+  ws = wb.Sheets["Fitness"];
+  if (ws) {
+    out.found = true; out.workouts = [];
+    for (let r = 5, n = dims(ws).rows; r <= n; r++) {
+      const d = D(get(ws, r, 1)), type = T(get(ws, r, 2)).trim(); if (!d || !type) continue;
+      const felt = T(get(ws, r, 6));
+      out.workouts.push({d, type, dur: N(get(ws, r, 3)), int: N(get(ws, r, 4)), what: T(get(ws, r, 5)), felt: /^\s*n\/?a\s*$/i.test(felt) ? "" : felt});
+    }
+  }
+  ws = wb.Sheets["Finances"];
+  if (ws) {
+    out.found = true; const dm = dims(ws);
+    for (let r = 5; r <= dm.rows; r++) {
+      const name = T(get(ws, r, 1)).trim(); if (!name || /^total$/i.test(name)) break;
+      const b = N(get(ws, r, 2)); out.categories.push({name, budget: b == null ? 0 : Math.round(b * 100) / 100});
+    }
+    let hdr = 0;
+    for (let r = 1; r <= Math.min(dm.rows, 300); r++) if (T(get(ws, r, 1)).trim() === "Date" && T(get(ws, r, 2)).trim() === "Category") { hdr = r; break; }
+    if (hdr) {
+      const count = new Map(), last = new Map();
+      for (let r = hdr + 1; r <= dm.rows; r++) {
+        const d = D(get(ws, r, 1)), cat = T(get(ws, r, 2)).trim(), desc = T(get(ws, r, 3)).trim(), amt = N(get(ws, r, 4));
+        if (!d || !desc || get(ws, r, 4) == null) continue;
+        const k = desc + "\u0000" + cat;
+        count.set(k, (count.get(k) || 0) + 1); last.set(k, amt);
+      }
+      const top = [...count].sort((a, b) => b[1] - a[1]).slice(0, 40);
+      out.quick = top.filter(([k, c]) => c >= 2 && last.get(k) != null && !k.split("\u0000")[0].includes("Rent"))
+        .slice(0, 16).map(([k]) => { const [desc, category] = k.split("\u0000"); return {desc, category, amount: last.get(k)}; });
+    }
+    let mc = 0;
+    for (let c = 1; c <= dm.cols; c++) if (T(get(ws, 4, c)).trim() === "Month") { mc = c; break; }
+    if (mc) {
+      let c = mc + 1;
+      for (; c <= dm.cols; c++) { const v = T(get(ws, 4, c)).trim(); if (!v || /^total/i.test(v)) break; out.accounts.push(v); }
+      for (c++; c <= dm.cols; c++) { const v = T(get(ws, 4, c)).trim(); if (!v || /^total/i.test(v)) break; out.liabilities.push(v); }
+    }
+  }
+  ws = wb.Sheets["Habits Data"];
+  if (ws) {
+    out.found = true; const dm = dims(ws), blocks = []; let prev = null;
+    for (let r = 1; r < dm.rows; r++) {
+      if (T(get(ws, r + 1, 1)).trim() !== "Habit") continue;
+      const d = D(get(ws, r, 1)); const mk = d ? d.slice(0, 7) : (prev ? shiftMonth(prev, 1) : null); prev = mk;
+      const habits = []; let hasX = false;
+      for (let q = r + 2; q <= dm.rows; q++) {
+        const name = T(get(ws, q, 1)).trim(); if (!name || name === "Habit") break;
+        const tg = N(get(ws, q, 2)); habits.push({name, target: tg ? Math.round(tg) : null});
+        for (let c = 3; c <= 33; c++) if (T(get(ws, q, c)).trim().toLowerCase() === "x") { hasX = true; break; }
+      }
+      if (habits.length) blocks.push({mk, habits, hasX});
+    }
+    const nowMk = monthKey(realToday());
+    const past = blocks.filter(b => !b.mk || b.mk <= nowMk);
+    const pick = [...past].reverse().find(b => b.hasX) || past[past.length - 1] || blocks[0];
+    if (pick) { out.habits = pick.habits; out.habitsMonth = pick.mk; }
+  }
+  ws = wb.Sheets["Life Check-in"];
+  if (ws) {
+    out.found = true; const dm = dims(ws), MON = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    for (let r = 5; r <= dm.rows; r++) { const a = T(get(ws, r, 1)).trim(); if (!a) break; out.lifeAreas.push(a); }
+    out.life = {};
+    for (let c = 2; c <= dm.cols; c++) {
+      const h = get(ws, 4, c); let mk = null;
+      if (typeof h === "number") { const d = D(h); mk = d && d.slice(0, 7); }
+      else { const m = T(h).trim().match(/^([A-Za-z]{3})[A-Za-z]*\.?\s+'?(\d{4}|\d{2})$/); if (m) { const i = MON.indexOf(m[1].toLowerCase()); if (i >= 0) mk = `${m[2].length === 2 ? "20" + m[2] : m[2]}-${pad(i + 1)}`; } }
+      if (!mk) continue;
+      const vals = {}; out.lifeAreas.forEach((a, i) => { const v = N(get(ws, 5 + i, c)); if (v != null) vals[a] = v; });
+      if (Object.keys(vals).length) out.life[mk] = vals;
+    }
+  }
+  return out;
+}
+function onImportFile(file) {
+  toast("Reading the spreadsheet…");
+  Promise.all([loadXLSX(), readFile(file, "buffer")]).then(([XLSX, buf]) => {
+    let r = null;
+    try { r = parseTracker(XLSX.read(new Uint8Array(buf), {type: "array"}), XLSX); } catch (e) { r = null; }
+    if (!r || !r.found) { toast("That doesn't look like the My Life Tracker workbook."); return; }
+    const items = [];
+    if (r.habits.length) items.push(`${r.habits.length} habits${r.habitsMonth ? ` (from ${esc(fmt.month(r.habitsMonth))})` : ""}`);
+    if (r.categories.length) items.push(`${r.categories.length} budget categories`);
+    if (r.quick.length) items.push(`${r.quick.length} quick-add purchases`);
+    if (r.accounts.length) items.push(`${r.accounts.length + r.liabilities.length} accounts`);
+    if (r.mood) items.push(`${r.mood.length} days of mood and sleep`);
+    if (r.workouts) items.push(`${r.workouts.length} workouts`);
+    S.modal = {title: "Import from this spreadsheet?", ok: "Import",
+      body: `<p>Found:</p><ul>${items.map(x => `<li>${x}</li>`).join("") || "<li>No usable data</li>"}</ul><p>This replaces your habits, budgets, quick-add list and spreadsheet history with what's in the file. Days you logged in the app aren't touched.</p>`,
+      onOk: () => applyImport(r, file.name || "spreadsheet")};
+    render();
+  }, () => toast("Couldn't read that file. Reopen the app while online and try again."));
+}
+function applyImport(r, fileName) {
+  const now = new Date().toISOString(), cfg = clone(S.config);
+  if (r.habits.length) cfg.habits = r.habits;
+  if (r.categories.length) cfg.categories = r.categories;
+  if (r.quick.length) cfg.quick = r.quick;
+  if (r.accounts.length) { cfg.accounts = r.accounts; cfg.liabilities = r.liabilities; }
+  if (r.lifeAreas.length) cfg.lifeAreas = r.lifeAreas;
+  if (r.workouts) { const types = cfg.workoutTypes.slice(); r.workouts.forEach(w => { if (!types.includes(w.type)) types.push(w.type); }); cfg.workoutTypes = types; }
+  cfg.updatedAt = now;
+  const hist = normalizeHistory(clone(S.history));
+  if (r.mood) hist.mood = r.mood;
+  if (r.workouts) hist.workouts = r.workouts;
+  if (r.life) hist.life = r.life;
+  hist.asOf = realToday(); hist.source = String(fileName).slice(0, 120); hist.updatedAt = now;
+  saveMany([["app/config", cfg], ["app/history", hist], ["app/meta", Object.assign({}, S.meta, {setupDone: true, updatedAt: now})]]);
+  S.view = "home"; S.exportOpts = null; S.settingsDraft = null; render();
+  toast("Spreadsheet imported.");
+}
+
+/* ---------- first-run setup ---------- */
+function renderSetup() {
+  return `<div class="view" data-scroll="setup">
+    <header><p class="eyebrow">My Life Tracker · nightly check-in</p>
+      <h1 class="hello">Set up your <em>check-in</em>.</h1>
+      <p class="date-line">Everything you log is stored on this device only.</p></header>
+    ${isIOS && !isStandalone() ? `<p class="notice">${INSTALL_HINT}</p>` : ""}
+    <div class="cards">
+      <button class="mini-card" data-act="pick-restore"><div><b>Restore a backup</b><span>Pick a life-tracker-backup file to bring in your habits, budgets and entries</span></div><span class="go" aria-hidden="true">›</span></button>
+      <button class="mini-card" data-act="pick-import"><div><b>Import your spreadsheet</b><span>Reads habits, budgets and history from My Life Tracker (.xlsx)</span></div><span class="go" aria-hidden="true">›</span></button>
+      <button class="mini-card" data-act="setup-fresh"><div><b>Start fresh</b><span>Add your own habits and budgets in Settings</span></div><span class="go" aria-hidden="true">›</span></button>
+    </div>
+    <p class="sync" id="sync">${SYNC_TEXT[S.sync] || ""}</p>
+  </div>`;
+}
+function modalHTML() {
+  const m = S.modal;
+  return `<div class="modal-wrap" role="dialog" aria-modal="true" aria-labelledby="modalT"><div class="modal"><h2 id="modalT">${esc(m.title)}</h2>${m.body}<div class="modal-btns"><button class="ghost" data-act="modal-cancel">Cancel</button><button class="primary" data-act="modal-ok">${esc(m.ok)}</button></div></div></div>`;
+}
+
+/* ---------- render + events ---------- */
+let lastScrollKey = null;
+function render() {
+  const app = $("#app"); const sc = $("[data-scroll]"); const prevKey = sc && sc.dataset.scroll; const prevTop = sc ? sc.scrollTop : 0;
+  let html;
+  if (S.view === "flow" && S.flow) html = renderFlow();
+  else if (S.view === "history") html = renderHistory();
+  else if (S.view === "settings" && S.settingsDraft) html = renderSettings();
+  else if (S.view === "export" && S.exportOpts) html = renderExport();
+  else if (S.view === "setup") html = renderSetup();
+  else { S.view = "home"; html = renderHome(); }
+  app.innerHTML = html + (S.modal ? modalHTML() : "");
+  const nsc = $("[data-scroll]");
+  if (nsc && nsc.dataset.scroll === prevKey) nsc.scrollTop = prevTop;
+  else if (nsc && S.view === "flow") { const txt = $("#txt"); if (txt && !txt.value) { try { txt.focus({preventScroll: true}); } catch (e) {} } }
+  lastScrollKey = nsc && nsc.dataset.scroll;
+  if (S.loaded) rememberFlow();
+}
+function softRender() { if (S.view === "home" || S.view === "history") render(); else if (S.view === "export") { const el = $("#expCounts"); if (el) el.innerHTML = countsHTML(); } }
+let toastT;
+function toast(msg) { const el = $("#toast"); el.textContent = msg; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), 2400); }
+
+const ACTIONS = {
+  start: () => openFlow("day", logicalToday()),
+  resume: () => openFlow("day", logicalToday(), {resume: true}),
+  "open-day": b => openFlow("day", b.dataset.date, {resume: hasDayContent(S.days[b.dataset.date]) && !S.days[b.dataset.date].done}),
+  "open-week": b => openFlow("week", null, {weekOf: b.dataset.week}),
+  "open-month": b => openFlow("month", null, {monthKey: b.dataset.month}),
+  close: () => closeFlow(),
+  next: () => goStep(1),
+  back: () => goStep(-1),
+  pick: b => {
+    const f = S.flow, field = b.dataset.field, v = +b.dataset.v;
+    if (field === "mood" || field === "energy") {
+      f.draft[field] = v; render();
+      const key = f.steps[f.i]; setTimeout(() => { if (S.flow === f && f.steps[f.i] === key) goStep(1); }, 300); return;
+    }
+    if (field === "overall") f.week.overall = v;
+    else if (field.startsWith("w-int-")) f.draft.workouts[+field.slice(6)].int = v;
+    else if (field.startsWith("life-")) f.month.life[f.areas[+field.slice(5)]] = v;
+    persistFlow(); render();
+  },
+  "sleep-step": b => { const f = S.flow; const cur = f.draft.sleep; f.draft.sleep = cur == null ? 7 : Math.max(0, Math.min(16, cur + +b.dataset.d)); persistFlow(); render(); },
+  "sleep-set": b => { S.flow.draft.sleep = +b.dataset.v; persistFlow(); render(); },
+  moved: b => {
+    const f = S.flow, d = f.draft;
+    if (b.dataset.v === "no") { d.workedOut = false; render(); const key = f.steps[f.i]; setTimeout(() => { if (S.flow === f && f.steps[f.i] === key) goStep(1); }, 300); return; }
+    d.workedOut = true; if (!d.workouts.length) d.workouts.push({type: "", dur: null, int: null, what: "", felt: ""}); persistFlow(); render();
+  },
+  "w-type": b => { const w = S.flow.draft.workouts[+b.dataset.w]; w.type = b.dataset.v; persistFlow(); render(); },
+  "w-dur": b => { S.flow.draft.workouts[+b.dataset.w].dur = +b.dataset.v; persistFlow(); render(); },
+  "w-use-last": b => { const f = S.flow, w = f.draft.workouts[+b.dataset.w]; const l = lastSession(w.type, f.date); if (!l) return; w.what = l.what; if (w.dur == null && l.dur != null) w.dur = l.dur; persistFlow(); render(); toast("Copied your last session. Edit what changed."); },
+  "w-add": () => { S.flow.draft.workouts.push({type: "", dur: null, int: null, what: "", felt: ""}); render(); },
+  "w-remove": b => { S.flow.draft.workouts.splice(+b.dataset.w, 1); persistFlow(); render(); },
+  habit: b => { const d = S.flow.draft, n = d.habitOrder[+b.dataset.hi]; d.habits[n] = d.habits[n] === "x" ? "" : "x"; S.flow.auto.delete(n); persistFlow(); render(); },
+  "habit-na": b => { const d = S.flow.draft, n = d.habitOrder[+b.dataset.hi]; d.habits[n] = d.habits[n] === "n/a" ? "" : "n/a"; S.flow.auto.delete(n); persistFlow(); render(); },
+  cat: b => { const sf = S.flow.spendForm; sf.category = sf.category === b.dataset.v ? "" : b.dataset.v; render(); },
+  "spend-add": () => addPurchase(false),
+  "spend-remove": b => { const d = S.flow.draft; d.spending = d.spending.filter(t => t.id !== b.dataset.id); persistFlow(); render(); },
+  quick: b => { const q = S.config.quick[+b.dataset.qi]; if (!q) return; const f = S.flow;
+    if (q.amount == null) { f.spendForm = {amount: "", desc: q.desc, category: q.category}; render(); const a = $("#amt"); if (a) a.focus(); return; }
+    f.draft.spending.push({id: uid(), category: q.category, desc: q.desc, amount: q.amount}); f.draft.noSpend = false; persistFlow(); render(); toast(`Added ${q.desc} · ${fmt.money(q.amount)}`); },
+  "no-spend": () => { const f = S.flow; f.draft.noSpend = true; render(); setTimeout(() => { if (S.flow === f && f.steps[f.i] === "spending") goStep(1); }, 300); },
+  "week-shift": b => { const f = S.flow; persistFlow(); f.weekOf = addDays(f.weekOf, 7 * +b.dataset.d); loadWeek(f); render(); },
+  "month-shift": b => { const f = S.flow; persistFlow(); f.monthKey = shiftMonth(f.monthKey, +b.dataset.d); loadMonth(f); render(); },
+  nav: b => { const to = b.dataset.to; if (!S.loaded && to !== "home") { toast("Still opening your log…"); return; } if (to === "settings") return openSettings(); if (to === "export") return openExport(); S.view = to; render(); },
+  "set-add": b => { const l = b.dataset.list, s = S.settingsDraft; s[l].push(l === "habits" ? {name: "", target: daysInMonth(monthKey(logicalToday()))} : l === "categories" ? {name: "", budget: 0} : l === "quick" ? {desc: "", category: (S.config.categories[0] || {}).name || "", amount: null} : ""); render(); },
+  "set-del": b => { S.settingsDraft[b.dataset.list].splice(+b.dataset.i, 1); render(); },
+  "set-save": () => saveSettings(),
+  "exp-download": () => doExportFile(),
+  backup: () => doBackup(),
+  "pick-restore": () => { const el = $("#restoreIn"); el.value = ""; el.click(); },
+  "pick-import": () => { const el = $("#importIn"); el.value = ""; el.click(); },
+  "retry-load": () => init(),
+  "setup-fresh": () => { save("app/meta", Object.assign({}, S.meta, {setupDone: true, updatedAt: new Date().toISOString()})); openSettings(); },
+  "modal-cancel": () => { S.modal = null; render(); },
+  "modal-ok": () => { const fn = S.modal && S.modal.onOk; S.modal = null; if (fn) fn(); else render(); },
+  "exp-copy": b => doCopy(b.dataset.sheet)
+};
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
+  const fn = ACTIONS[b.dataset.act]; if (fn) { e.preventDefault(); fn(b, e); }
+});
+document.addEventListener("input", e => {
+  const t = e.target, bind = t.dataset && t.dataset.bind; if (!bind) return;
+  const [root, ...rest] = bind.split("."), v = t.value, f = S.flow;
+  if (root === "set") {
+    const s = S.settingsDraft; if (!s) return;
+    if (rest[0] === "name") s.name = v;
+    else if (rest.length === 2) s[rest[0]][+rest[1]] = v;
+    else { const row = s[rest[0]][+rest[1]], k = rest[2]; if (row) row[k] = ["target", "budget", "amount"].includes(k) ? num(v) : v; }
+    return;
+  }
+  if (root === "exp") { S.exportOpts[rest[0]] = v; const el = $("#expCounts"); if (el) el.innerHTML = countsHTML(); return; }
+  if (!f) return;
+  if (root === "spend") { f.spendForm[rest[0]] = v; updateNextLabel(); return; }
+  if (root === "day") f.draft[rest[0]] = v;
+  else if (root === "w") { const w = f.draft.workouts[+rest[0]]; if (w) w[rest[1]] = rest[1] === "dur" ? num(v) : v; }
+  else if (root === "week") f.week[rest[0]] = v;
+  else if (root === "plan") { if (rest[0] === "intention") f.plan.intention = v; else f.plan.priorities[+rest[1]] = v; }
+  else if (root === "bal") { const n = f.balNames[+rest[0]], x = num(v); if (x == null) delete f.month.balances[n]; else f.month.balances[n] = x; }
+  updateNextLabel(); schedulePersist();
+});
+document.addEventListener("change", e => {
+  const t = e.target, c = t.dataset && t.dataset.change; if (!c) return;
+  if (c === "restore-file" || c === "import-file") {
+    const file = t.files && t.files[0]; t.value = "";
+    if (file) { if (c === "restore-file") onRestoreFile(file); else onImportFile(file); }
+    return;
+  }
+  if (c === "flow-date" && t.value && t.value <= realToday()) openFlow("day", t.value);
+  else if (c === "pick-day" && t.value && t.value <= realToday()) openFlow("day", t.value, {resume: hasDayContent(S.days[t.value]) && !S.days[t.value].done});
+  else if (c === "spend-desc" && S.flow) {
+    const m = findPurchase(t.value); const sf = S.flow.spendForm;
+    if (m) { let changed = false; if (!sf.category && m.category) { sf.category = m.category; changed = true; } if (!num(sf.amount) && m.amount != null) { sf.amount = String(m.amount); changed = true; } if (changed) render(); }
+  }
+});
+document.addEventListener("toggle", e => {
+  const t = e.target; if (!t.matches) return;
+  if (t.matches("details[data-more]")) { if (S.settingsDraft) S.settingsDraft.moreOpen = t.open; }
+  else if (t.matches("details.bal") && S.flow) S.flow.balOpen = t.open;
+}, true);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") { persistFlow(); mirrorPending(); }
+  else { flush(); if (S.loaded && S.view === "home" && !S.modal) render(); }
+});
+window.addEventListener("pagehide", () => { persistFlow(); mirrorPending(); });
+
+/* ---------- boot ---------- */
+render();
+init();
+if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+}
+</script>
+</body>
+</html>
